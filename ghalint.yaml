@@ -1,0 +1,5 @@
+excludes:
+  # allow for reviewdog
+  - policy_name: checkout_persist_credentials_should_be_false
+    workflow_file_path: .github/workflows/action-lint.yml
+    job_name: actionlint

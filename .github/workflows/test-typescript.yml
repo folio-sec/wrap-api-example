@@ -1,0 +1,38 @@
+name: TypeScript
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/test-typescript.yml'
+      - 'typescript/src/**'
+      - 'typescript/package.json'
+      - 'typescript/tsconfig.json'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: typescript
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: 'typescript/package.json'
+          cache: npm
+          cache-dependency-path: typescript/package-lock.json
+      - run: npm ci
+      - run: npm run build
