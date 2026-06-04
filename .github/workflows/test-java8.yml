@@ -1,0 +1,36 @@
+name: Java 8
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/test-java8.yml'
+      - 'java8/src/**'
+      - 'java8/pom.xml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: java8
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
+        with:
+          distribution: temurin
+          java-version: '8'
+          cache: maven
+      - run: ./mvnw compile -DskipTests

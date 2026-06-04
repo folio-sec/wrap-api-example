@@ -1,0 +1,36 @@
+name: release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+
+      - name: Create zip archives
+        run: |
+          for dir in golang java17 java8 php python ruby scala typescript; do
+            zip -r "${dir}.zip" "${dir}/"
+          done
+        shell: bash
+
+      - name: Create release and upload assets
+        run: |
+          TAG="release-$(date +%Y%m%d-%H%M%S)"
+          gh release create "$TAG" \
+            --title "Implementations $TAG" \
+            --notes "Auto-generated release of implementation samples" \
+            golang.zip java17.zip java8.zip php.zip python.zip ruby.zip scala.zip typescript.zip
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash

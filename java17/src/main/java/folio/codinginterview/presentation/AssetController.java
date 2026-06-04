@@ -1,0 +1,42 @@
+package folio.codinginterview.presentation;
+
+import folio.codinginterview.application.usecase.asset.GetAssetUsecase;
+import folio.codinginterview.presentation.PresentationException.BadRequestException;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+
+public final class AssetController extends PresentationPreparation {
+    public record StockDto(String symbol, String evaluationAmount) {}
+
+    public record GetAssetRequest(String userId) {}
+
+    public record GetAssetResponse(String cashAmount, List<StockDto> stocks) {}
+
+    private final GetAssetUsecase getAssetUsecase;
+
+    public AssetController(GetAssetUsecase getAssetUsecase) {
+        this.getAssetUsecase = getAssetUsecase;
+    }
+
+    public CompletableFuture<GetAssetResponse> getAsset(GetAssetRequest req) {
+        return parseUserId(req.userId()).thenCompose(uid ->
+                getAssetUsecase.run(new GetAssetUsecase.Input(uid))
+                        .handle((out, ex) -> {
+                            if (ex != null) {
+                                Throwable cause = ex instanceof CompletionException ? ex.getCause() : ex;
+                                if (cause instanceof GetAssetUsecase.UserNotFound) {
+                                    throw new CompletionException(new BadRequestException("user not found"));
+                                }
+                                throw new CompletionException(cause);
+                            }
+                            List<StockDto> stocks = new ArrayList<>();
+                            for (var e : out.stocks()) {
+                                stocks.add(new StockDto(e.symbol().toString(), e.evaluationAmount().toString()));
+                            }
+                            return new GetAssetResponse(out.cashAmount().toString(), stocks);
+                        }));
+    }
+}

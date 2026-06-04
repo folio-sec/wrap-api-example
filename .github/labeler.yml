@@ -1,0 +1,39 @@
+golang:
+- changed-files:
+  - any-glob-to-any-file: golang/**/*
+
+scala:
+- changed-files:
+  - any-glob-to-any-file: scala/**/*
+
+java17:
+- changed-files:
+  - any-glob-to-any-file: java17/**/*
+
+java8:
+- changed-files:
+  - any-glob-to-any-file: java8/**/*
+
+typescript:
+- changed-files:
+  - any-glob-to-any-file: typescript/**/*
+
+python:
+- changed-files:
+  - any-glob-to-any-file: python/**/*
+
+ruby:
+- changed-files:
+  - any-glob-to-any-file: ruby/**/*
+
+php:
+- changed-files:
+  - any-glob-to-any-file: php/**/*
+
+docs:
+- changed-files:
+  - any-glob-to-any-file: docs/**/*
+
+ci:
+- changed-files:
+  - any-glob-to-any-file: .github/**/*
