@@ -2,11 +2,7 @@
 
 ## Release
 
-Kick the [release action](https://github.com/folio-sec/terraform-provider-zoom/actions/workflows/release.yml) manually, then release.
-
-## Contribution
-
-See also [CONTRIBUTING.md](CONTRIBUTING.md).
+Kick the [release action](https://github.com/folio-sec/wrap-api-example/actions/workflows/release.yml) manually, then release.
 
 ### DCO Sign-Off Methods
 

@@ -33,3 +33,5 @@ jobs:
           ruby-version: '3.3'
           bundler-cache: true
           working-directory: ruby
+      - run: find lib -name "*.rb" | xargs -I{} ruby -c {}
+      - run: bundle exec rspec spec/optimal_portfolio_scenario_spec.rb
