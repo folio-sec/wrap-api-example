@@ -32,4 +32,6 @@ jobs:
         with:
           python-version-file: 'python/pyproject.toml'
           cache: pip
-      - run: pip install .
+      - run: pip install ".[dev]"
+      - run: find src -name '*.py' -exec python -m py_compile {} +
+      - run: python -m pytest tests/test_optimal_portfolio_scenario.py

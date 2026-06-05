@@ -32,3 +32,5 @@ jobs:
         with:
           php-version: '8.5'
       - run: composer install --no-interaction --prefer-dist
+      - run: find src -name '*.php' -exec php -l {} +
+      - run: ./vendor/bin/phpunit tests/OptimalPortfolioScenarioTest.php
