@@ -36,3 +36,4 @@ jobs:
           cache-dependency-path: typescript/package-lock.json
       - run: npm ci
       - run: npm run build
+      - run: npx vitest run tests/optimalPortfolioScenario.test.ts

@@ -33,4 +33,4 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
-      - run: ./mvnw compile -DskipTests
+      - run: ./mvnw test -q -Dtest=OptimalPortfolioScenarioTest
