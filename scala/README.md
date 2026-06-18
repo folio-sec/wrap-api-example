@@ -2,8 +2,6 @@
 
 ## 開発
 
-NOTE: java21未満を利用する場合は `project/build.properties` を変更して sbt `1.11.7` などを利用してください
-
 ```shell
 # 準備
 git init && git add . && git commit -m init
