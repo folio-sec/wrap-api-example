@@ -7,7 +7,6 @@ RSpec.describe "Investment Operation" do
   let(:ac) { server.asset_controller }
   let(:pc) { server.portfolio_controller }
   let(:oc) { server.order_controller }
-  let(:mp) { server.market_price_controller }
 
   before do
     pc.update_optimal_portfolio(
@@ -16,15 +15,9 @@ RSpec.describe "Investment Operation" do
         CodingInterview::Presentation::PortfolioItemDto.new("Somy", "0.60")
       ])
     )
-    mp.update_market_price(
-      CodingInterview::Presentation::UpdateMarketPriceRequest.new([
-        CodingInterview::Presentation::MarketPriceItemDto.new("Toyopa", "2.5"),
-        CodingInterview::Presentation::MarketPriceItemDto.new("Somy", "3.0")
-      ])
-    )
   end
 
-  it "新規拠出・追加拠出・リバランスの一連の操作が正しく機能する" do
+  it "新規注文・追加注文・リバランスの一連の操作が正しく機能する" do
     user_id = SecureRandom.uuid
 
     # Given: 存在しないユーザーで資産を取得しようとする
@@ -41,38 +34,38 @@ RSpec.describe "Investment Operation" do
       ])
     )
 
-    # And: 新規拠出を 100,000 円で注文する
-    oc.new_contribution_order(
-      CodingInterview::Presentation::NewContributionOrderRequest.new(user_id, "100000")
+    # And: 新規注文を 100,000 円で注文する
+    oc.new_order(
+      CodingInterview::Presentation::NewOrderRequest.new(user_id, "100000")
     )
 
     asset1 = ac.get_asset(CodingInterview::Presentation::GetAssetRequest.new(user_id))
     expect(asset1.stocks.map(&:symbol).to_set).to eq(Set["Toyopa", "Somy"])
-    total1 = BigDecimal(asset1.cash_amount) + asset1.stocks.inject(BigDecimal("0")) { |a, e| a + BigDecimal(e.evaluation_amount) }
+    total1 = BigDecimal(asset1.cash_amount) + asset1.stocks.inject(BigDecimal("0")) { |a, e| a + BigDecimal(e.amount_jpy) }
     expect((total1 - BigDecimal("100000")).abs).to be <= BigDecimal("2")
 
-    # Then: 現金比率5%に対して現金が 5,000円、最適ポートフォリオに基づき Toyopa の評価額が 38,000 円(40%)、Somy の評価額が 57,000 円(60%) となる
+    # Then: 現金比率5%に対して現金が 5,000円、最適ポートフォリオに基づき Toyopa の保有額が 38,000 円(40%)、Somy の保有額が 57,000 円(60%) となる
     asset1_toyopa = asset1.stocks.find { |e| e.symbol == "Toyopa" }
     asset1_somy = asset1.stocks.find { |e| e.symbol == "Somy" }
-    expect(BigDecimal(asset1_toyopa.evaluation_amount)).to eq(BigDecimal("38000"))
-    expect(BigDecimal(asset1_somy.evaluation_amount)).to eq(BigDecimal("57000"))
+    expect(BigDecimal(asset1_toyopa.amount_jpy)).to eq(BigDecimal("38000"))
+    expect(BigDecimal(asset1_somy.amount_jpy)).to eq(BigDecimal("57000"))
     expect(BigDecimal(asset1.cash_amount)).to eq(BigDecimal("5000"))
 
-    # When: 追加拠出を 100,000 円で注文する
-    oc.additional_contribution_order(
-      CodingInterview::Presentation::AdditionalContributionOrderRequest.new(user_id, "100000")
+    # When: 追加注文を 100,000 円で注文する
+    oc.additional_order(
+      CodingInterview::Presentation::AdditionalOrderRequest.new(user_id, "100000")
     )
 
     # Then: 資産合計が約 200,000 円になる
     asset2 = ac.get_asset(CodingInterview::Presentation::GetAssetRequest.new(user_id))
-    total2 = BigDecimal(asset2.cash_amount) + asset2.stocks.inject(BigDecimal("0")) { |a, e| a + BigDecimal(e.evaluation_amount) }
+    total2 = BigDecimal(asset2.cash_amount) + asset2.stocks.inject(BigDecimal("0")) { |a, e| a + BigDecimal(e.amount_jpy) }
     expect((total2 - BigDecimal("200000")).abs).to be <= BigDecimal("4")
 
-    # And: 現金比率5%に対して現金が 10,000円、最適ポートフォリオに基づき Toyopa の評価額が 76,000 円(40%)、Somy の評価額が 114,000 円(60%) となる
+    # And: 現金比率5%に対して現金が 10,000円、最適ポートフォリオに基づき Toyopa の保有額が 76,000 円(40%)、Somy の保有額が 114,000 円(60%) となる
     asset2_toyopa = asset2.stocks.find { |e| e.symbol == "Toyopa" }
     asset2_somy = asset2.stocks.find { |e| e.symbol == "Somy" }
-    expect(BigDecimal(asset2_toyopa.evaluation_amount)).to eq(BigDecimal("76000"))
-    expect(BigDecimal(asset2_somy.evaluation_amount)).to eq(BigDecimal("114000"))
+    expect(BigDecimal(asset2_toyopa.amount_jpy)).to eq(BigDecimal("76000"))
+    expect(BigDecimal(asset2_somy.amount_jpy)).to eq(BigDecimal("114000"))
     expect(BigDecimal(asset2.cash_amount)).to eq(BigDecimal("10000"))
 
     # When: 最適ポートフォリオを Toyopa=10%, Somy=90% に変更して、リバランス注文をする
@@ -86,14 +79,14 @@ RSpec.describe "Investment Operation" do
 
     # Then: リバランス後も資産合計がほぼ変わらない
     asset3 = ac.get_asset(CodingInterview::Presentation::GetAssetRequest.new(user_id))
-    total3 = BigDecimal(asset3.cash_amount) + asset3.stocks.inject(BigDecimal("0")) { |a, e| a + BigDecimal(e.evaluation_amount) }
+    total3 = BigDecimal(asset3.cash_amount) + asset3.stocks.inject(BigDecimal("0")) { |a, e| a + BigDecimal(e.amount_jpy) }
     expect((total3 - total2).abs).to be <= BigDecimal("4")
 
-    # And: 現金比率5%に対して現金が 10,000円、最適ポートフォリオに基づき Toyopa の評価額が 19,000 円(10%)、Somy の評価額が 171,000 円(90%) となる
+    # And: 現金比率5%に対して現金が 10,000円、最適ポートフォリオに基づき Toyopa の保有額が 19,000 円(10%)、Somy の保有額が 171,000 円(90%) となる
     asset3_toyopa = asset3.stocks.find { |e| e.symbol == "Toyopa" }
     asset3_somy = asset3.stocks.find { |e| e.symbol == "Somy" }
-    expect(BigDecimal(asset3_toyopa.evaluation_amount)).to eq(BigDecimal("19000"))
-    expect(BigDecimal(asset3_somy.evaluation_amount)).to eq(BigDecimal("171000"))
+    expect(BigDecimal(asset3_toyopa.amount_jpy)).to eq(BigDecimal("19000"))
+    expect(BigDecimal(asset3_somy.amount_jpy)).to eq(BigDecimal("171000"))
     expect(BigDecimal(asset3.cash_amount)).to eq(BigDecimal("10000"))
   end
 end

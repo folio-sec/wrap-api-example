@@ -1,4 +1,3 @@
-require_relative "../../service/portfolio_service"
 require_relative "../../../domain/app_constants"
 
 module CodingInterview
@@ -12,10 +11,9 @@ module CodingInterview
         class AdditionalBuyAmountTooSmall < AdditionalBuyOrderUsecaseException; end
 
         class AdditionalBuyOrderUsecase
-          def initialize(account_repository, portfolio_repository, market_price_repository)
+          def initialize(account_repository, portfolio_repository)
             @account_repository = account_repository
             @portfolio_repository = portfolio_repository
-            @market_price_repository = market_price_repository
           end
 
           def run(input)
@@ -24,8 +22,7 @@ module CodingInterview
             raise AdditionalBuyUserNotFound if account.nil?
 
             portfolio = @portfolio_repository.get
-            prices = @market_price_repository.all
-            updated = Service::PortfolioService.allocate_additional(account, input.amount, portfolio, prices)
+            updated = account.add_funds(input.amount, portfolio)
             @account_repository.upsert(input.user_id, updated)
           end
         end

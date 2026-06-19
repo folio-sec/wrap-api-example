@@ -10,11 +10,6 @@ module CodingInterview
 
       SUPPORTED_SYMBOLS = [StockSymbol::Toyopa, StockSymbol::Somy].freeze
 
-      INITIAL_PRICES = {
-        StockSymbol::Toyopa => BigDecimal("4.2135"),
-        StockSymbol::Somy => BigDecimal("1.2345")
-      }.freeze
-
       INITIAL_PORTFOLIO = Portfolio.new([
         PortfolioItem.new(StockSymbol::Toyopa, BigDecimal("0.40")),
         PortfolioItem.new(StockSymbol::Somy, BigDecimal("0.60"))

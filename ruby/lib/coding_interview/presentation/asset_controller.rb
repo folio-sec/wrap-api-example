@@ -4,7 +4,7 @@ require_relative "../application/usecase/asset/get_asset_usecase"
 
 module CodingInterview
   module Presentation
-    StockDto = Struct.new(:symbol, :evaluation_amount)
+    StockDto = Struct.new(:symbol, :amount_jpy)
     GetAssetRequest = Struct.new(:user_id)
     GetAssetResponse = Struct.new(:cash_amount, :stocks)
 
@@ -25,7 +25,7 @@ module CodingInterview
           end
         GetAssetResponse.new(
           out.cash_amount.to_s("F"),
-          out.stocks.map { |e| StockDto.new(e.symbol.to_s, e.evaluation_amount.to_s("F")) }
+          out.stocks.map { |e| StockDto.new(e.symbol.to_s, e.amount_jpy.to_s("F")) }
         )
       end
     end
