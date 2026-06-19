@@ -4,9 +4,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 
 from coding_interview.application.repository.account_repository import AccountRepository
-from coding_interview.application.repository.market_price_repository import MarketPriceRepository
 from coding_interview.application.repository.portfolio_repository import PortfolioRepository
-from coding_interview.application.service.portfolio_service import allocate_additional
 from coding_interview.application.usecase.exceptions import AmountTooSmallError, UserNotFoundError
 from coding_interview.domain.constants import MIN_OPERATION_AMOUNT
 from coding_interview.domain.user_id import UserId
@@ -23,11 +21,9 @@ class AdditionalBuyOrderUsecase:
         self,
         account_repository: AccountRepository,
         portfolio_repository: PortfolioRepository,
-        market_price_repository: MarketPriceRepository,
     ) -> None:
         self._account_repository = account_repository
         self._portfolio_repository = portfolio_repository
-        self._market_price_repository = market_price_repository
 
     def run(self, input: AdditionalBuyOrderUsecaseInput) -> None:
         if input.amount < MIN_OPERATION_AMOUNT:
@@ -36,6 +32,5 @@ class AdditionalBuyOrderUsecase:
         if account is None:
             raise UserNotFoundError()
         portfolio = self._portfolio_repository.get()
-        prices = self._market_price_repository.all()
-        new_account = allocate_additional(account, input.amount, portfolio, prices)
+        new_account = account.add_funds(input.amount, portfolio)
         self._account_repository.upsert(input.user_id, new_account)

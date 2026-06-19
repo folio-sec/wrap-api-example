@@ -5,6 +5,8 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class UserId:
+    """ユーザーIDを表す。"""
+
     value: str
 
     def __post_init__(self) -> None:

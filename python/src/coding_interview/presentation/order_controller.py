@@ -11,9 +11,9 @@ from coding_interview.application.usecase.order.additional_buy_order_usecase imp
     AdditionalBuyOrderUsecase,
     AdditionalBuyOrderUsecaseInput,
 )
-from coding_interview.application.usecase.order.new_contribution_order_usecase import (
-    NewContributionOrderUsecase,
-    NewContributionOrderUsecaseInput,
+from coding_interview.application.usecase.order.new_order_usecase import (
+    NewOrderUsecase,
+    NewOrderUsecaseInput,
 )
 from coding_interview.application.usecase.order.rebalance_order_usecase import (
     RebalanceOrderUsecase,
@@ -24,13 +24,13 @@ from coding_interview.presentation.preparation import parse_amount, parse_user_i
 
 
 @dataclass(frozen=True)
-class NewContributionOrderRequest:
+class NewOrderRequest:
     userId: str
     amount: str
 
 
 @dataclass(frozen=True)
-class AdditionalContributionOrderRequest:
+class AdditionalOrderRequest:
     userId: str
     amount: str
 
@@ -43,25 +43,25 @@ class RebalanceOrderRequest:
 class OrderController:
     def __init__(
         self,
-        new_contribution_order_usecase: NewContributionOrderUsecase,
+        new_order_usecase: NewOrderUsecase,
         additional_buy_order_usecase: AdditionalBuyOrderUsecase,
         rebalance_order_usecase: RebalanceOrderUsecase,
     ) -> None:
-        self._new_contribution_order_usecase = new_contribution_order_usecase
+        self._new_order_usecase = new_order_usecase
         self._additional_buy_order_usecase = additional_buy_order_usecase
         self._rebalance_order_usecase = rebalance_order_usecase
 
-    def new_contribution_order(self, req: NewContributionOrderRequest) -> None:
+    def new_order(self, req: NewOrderRequest) -> None:
         uid = parse_user_id(req.userId)
         amt = parse_amount(req.amount)
         try:
-            self._new_contribution_order_usecase.run(NewContributionOrderUsecaseInput(uid, amt))
+            self._new_order_usecase.run(NewOrderUsecaseInput(uid, amt))
         except UserAlreadyExistsError:
             raise BadRequestException("user already has account")
         except AmountTooSmallError:
             raise BadRequestException("amount is too small")
 
-    def additional_contribution_order(self, req: AdditionalContributionOrderRequest) -> None:
+    def additional_order(self, req: AdditionalOrderRequest) -> None:
         uid = parse_user_id(req.userId)
         amt = parse_amount(req.amount)
         try:

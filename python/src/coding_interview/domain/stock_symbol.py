@@ -4,6 +4,8 @@ from enum import Enum
 
 
 class StockSymbol(Enum):
+    """銘柄を表す。"""
+
     Toyopa = "Toyopa"
     Somy = "Somy"
 
