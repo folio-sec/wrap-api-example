@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Folio\CodingInterview\Domain;
 
+/** ユーザーIDを表す。 */
 final class UserId
 {
     public function __construct(public readonly string $value)

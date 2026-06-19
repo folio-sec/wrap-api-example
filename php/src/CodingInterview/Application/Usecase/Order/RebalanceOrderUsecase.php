@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace Folio\CodingInterview\Application\Usecase\Order;
 
 use Folio\CodingInterview\Application\Repository\AccountRepository;
-use Folio\CodingInterview\Application\Repository\MarketPriceRepository;
 use Folio\CodingInterview\Application\Repository\PortfolioRepository;
-use Folio\CodingInterview\Application\Service\PortfolioService;
 use Folio\CodingInterview\Domain\UserId;
 
 final class RebalanceOrderUsecaseInput
@@ -25,7 +23,6 @@ final class RebalanceOrderUsecase
     public function __construct(
         private readonly AccountRepository $accountRepository,
         private readonly PortfolioRepository $portfolioRepository,
-        private readonly MarketPriceRepository $marketPriceRepository,
     ) {}
 
     public function run(RebalanceOrderUsecaseInput $input): void
@@ -35,8 +32,7 @@ final class RebalanceOrderUsecase
             throw new RebalanceOrderUserNotFoundException();
         }
         $portfolio = $this->portfolioRepository->get();
-        $prices = $this->marketPriceRepository->all();
-        $updated = PortfolioService::rebalance($account, $portfolio, $prices);
+        $updated = $account->rebalance($portfolio);
         $this->accountRepository->upsert($input->userId, $updated);
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Folio\CodingInterview\Domain;
 
+/** 銘柄を表す。 */
 enum StockSymbol: string
 {
     case Toyopa = 'Toyopa';

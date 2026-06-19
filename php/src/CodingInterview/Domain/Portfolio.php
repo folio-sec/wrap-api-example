@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Folio\CodingInterview\Domain;
 
+/** 最適ポートフォリオ（銘柄ごとの構成比率）を表す。 */
 final class Portfolio
 {
     /** @param PortfolioItem[] $items */

@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace Folio\CodingInterview\Application\Usecase\Order;
 
 use Folio\CodingInterview\Application\Repository\AccountRepository;
-use Folio\CodingInterview\Application\Repository\MarketPriceRepository;
 use Folio\CodingInterview\Application\Repository\PortfolioRepository;
-use Folio\CodingInterview\Application\Service\PortfolioService;
 use Folio\CodingInterview\Domain\AppConstants;
 use Folio\CodingInterview\Domain\BigDecimal;
 use Folio\CodingInterview\Domain\UserId;
@@ -35,7 +33,6 @@ final class AdditionalBuyOrderUsecase
     public function __construct(
         private readonly AccountRepository $accountRepository,
         private readonly PortfolioRepository $portfolioRepository,
-        private readonly MarketPriceRepository $marketPriceRepository,
     ) {}
 
     public function run(AdditionalBuyOrderUsecaseInput $input): void
@@ -48,8 +45,7 @@ final class AdditionalBuyOrderUsecase
             throw new AdditionalBuyOrderUserNotFoundException();
         }
         $portfolio = $this->portfolioRepository->get();
-        $prices = $this->marketPriceRepository->all();
-        $updated = PortfolioService::allocateAdditional($account, $input->amount, $portfolio, $prices);
+        $updated = $account->addFunds($input->amount, $portfolio);
         $this->accountRepository->upsert($input->userId, $updated);
     }
 }
