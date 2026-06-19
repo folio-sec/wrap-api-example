@@ -1,9 +1,7 @@
 package folio.codinginterview.application.usecase.order
 
 import folio.codinginterview.application.repository.AccountRepository
-import folio.codinginterview.application.repository.MarketPriceRepository
 import folio.codinginterview.application.repository.PortfolioRepository
-import folio.codinginterview.application.service.PortfolioService
 import folio.codinginterview.domain.UserId
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
@@ -17,8 +15,7 @@ object RebalanceOrderUsecaseException {
 
 final class RebalanceOrderUsecase(
     accountRepository: AccountRepository,
-    portfolioRepository: PortfolioRepository,
-    marketPriceRepository: MarketPriceRepository
+    portfolioRepository: PortfolioRepository
 )(using ec: ExecutionContext) {
   def run(input: RebalanceOrderUsecaseInput): Future[Unit] = {
     for {
@@ -28,8 +25,7 @@ final class RebalanceOrderUsecase(
         case None    => Future.failed(RebalanceOrderUsecaseException.UserNotFound)
       }
       portfolio <- portfolioRepository.get()
-      prices <- marketPriceRepository.all()
-      updated = PortfolioService.rebalance(account, portfolio, prices)
+      updated = account.rebalance(portfolio)
       _ <- accountRepository.upsert(input.userId, updated)
     } yield ()
   }

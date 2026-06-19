@@ -1,5 +1,6 @@
 package folio.codinginterview.domain
 
+/** 銘柄を表す。 */
 enum StockSymbol {
   case Toyopa, Somy
 }
