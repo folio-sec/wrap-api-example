@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"folio/codinginterview/internal/application/repository"
-	"folio/codinginterview/internal/application/service"
 	"folio/codinginterview/internal/domain"
 
 	"github.com/shopspring/decimal"
@@ -13,8 +12,8 @@ import (
 var ErrUserNotFound = errors.New("user not found")
 
 type GetAssetStockOutput struct {
-	Symbol           domain.StockSymbol
-	EvaluationAmount decimal.Decimal
+	Symbol    domain.StockSymbol
+	AmountJpy decimal.Decimal
 }
 
 type GetAssetUsecaseInput struct {
@@ -27,12 +26,11 @@ type GetAssetUsecaseOutput struct {
 }
 
 type GetAssetUsecase struct {
-	accountRepo       repository.AccountRepository
-	marketPriceRepo repository.MarketPriceRepository
+	accountRepo repository.AccountRepository
 }
 
-func NewGetAssetUsecase(accountRepo repository.AccountRepository, marketPriceRepo repository.MarketPriceRepository) *GetAssetUsecase {
-	return &GetAssetUsecase{accountRepo: accountRepo, marketPriceRepo: marketPriceRepo}
+func NewGetAssetUsecase(accountRepo repository.AccountRepository) *GetAssetUsecase {
+	return &GetAssetUsecase{accountRepo: accountRepo}
 }
 
 func (u *GetAssetUsecase) Run(input GetAssetUsecaseInput) (GetAssetUsecaseOutput, error) {
@@ -44,18 +42,9 @@ func (u *GetAssetUsecase) Run(input GetAssetUsecaseInput) (GetAssetUsecaseOutput
 		return GetAssetUsecaseOutput{}, ErrUserNotFound
 	}
 
-	prices, err := u.marketPriceRepo.All()
-	if err != nil {
-		return GetAssetUsecaseOutput{}, err
-	}
-
 	stocks := make([]GetAssetStockOutput, 0, len(account.Stocks))
 	for _, s := range account.Stocks {
-		evalAmount, err := service.EvaluateStock(s, prices)
-		if err != nil {
-			return GetAssetUsecaseOutput{}, err
-		}
-		stocks = append(stocks, GetAssetStockOutput{Symbol: s.Symbol, EvaluationAmount: evalAmount})
+		stocks = append(stocks, GetAssetStockOutput{Symbol: s.Symbol, AmountJpy: s.AmountJpy})
 	}
 
 	return GetAssetUsecaseOutput{CashAmount: account.Cash, Stocks: stocks}, nil

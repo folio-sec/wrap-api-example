@@ -2,6 +2,7 @@ package domain
 
 import "fmt"
 
+// StockSymbol は銘柄を表す。
 type StockSymbol string
 
 const (

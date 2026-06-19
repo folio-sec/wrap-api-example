@@ -7,8 +7,8 @@ import (
 )
 
 type StockDto struct {
-	Symbol           string
-	EvaluationAmount string
+	Symbol    string
+	AmountJpy string
 }
 
 type GetAssetRequest struct {
@@ -45,8 +45,8 @@ func (c *AssetController) GetAsset(req GetAssetRequest) (GetAssetResponse, error
 	stocks := make([]StockDto, 0, len(out.Stocks))
 	for _, s := range out.Stocks {
 		stocks = append(stocks, StockDto{
-			Symbol:           string(s.Symbol),
-			EvaluationAmount: s.EvaluationAmount.String(),
+			Symbol:    string(s.Symbol),
+			AmountJpy: s.AmountJpy.String(),
 		})
 	}
 	return GetAssetResponse{
