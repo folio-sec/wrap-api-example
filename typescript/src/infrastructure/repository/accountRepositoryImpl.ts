@@ -1,5 +1,5 @@
 import { AccountRepository } from "../../application/repository/accountRepository.js";
-import { Account } from "../../domain/stock.js";
+import { Account } from "../../domain/account.js";
 import { UserId } from "../../domain/userId.js";
 
 export class AccountRepositoryImpl implements AccountRepository {

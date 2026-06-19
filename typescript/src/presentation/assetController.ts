@@ -7,7 +7,7 @@ import { parseUserId } from "./presentationPreparation.js";
 
 export interface StockDto {
   symbol: string;
-  evaluationAmount: string;
+  amountJpy: string;
 }
 
 export interface GetAssetRequest {
@@ -30,7 +30,7 @@ export class AssetController {
         cashAmount: out.cashAmount.toString(),
         stocks: out.stocks.map((e) => ({
           symbol: e.symbol,
-          evaluationAmount: e.evaluationAmount.toString(),
+          amountJpy: e.amountJpy.toString(),
         })),
       };
     } catch (e) {

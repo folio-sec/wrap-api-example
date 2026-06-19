@@ -1,4 +1,4 @@
-import { Account } from "../../domain/stock.js";
+import { Account } from "../../domain/account.js";
 import { UserId } from "../../domain/userId.js";
 
 /** 口座管理リポジトリ。 */

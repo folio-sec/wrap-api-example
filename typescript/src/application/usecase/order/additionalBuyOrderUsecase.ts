@@ -1,8 +1,6 @@
 import Decimal from "decimal.js";
 import { AccountRepository } from "../../repository/accountRepository.js";
-import { MarketPriceRepository } from "../../repository/marketPriceRepository.js";
 import { PortfolioRepository } from "../../repository/portfolioRepository.js";
-import { PortfolioService } from "../../service/portfolioService.js";
 import { AppConstants } from "../../../domain/appConstants.js";
 import { UserId } from "../../../domain/userId.js";
 
@@ -27,7 +25,6 @@ export class AdditionalBuyOrderUsecase {
   constructor(
     private readonly accountRepository: AccountRepository,
     private readonly portfolioRepository: PortfolioRepository,
-    private readonly marketPriceRepository: MarketPriceRepository,
   ) {}
 
   async run(input: AdditionalBuyOrderUsecaseInput): Promise<void> {
@@ -39,8 +36,7 @@ export class AdditionalBuyOrderUsecase {
       throw new AdditionalBuyUserNotFoundException();
     }
     const portfolio = await this.portfolioRepository.get();
-    const prices = await this.marketPriceRepository.all();
-    const updated = PortfolioService.allocateAdditional(account, input.amount, portfolio, prices);
+    const updated = account.addFunds(input.amount, portfolio);
     await this.accountRepository.upsert(input.userId, updated);
   }
 }

@@ -4,10 +4,10 @@ import {
   AdditionalBuyUserNotFoundException,
 } from "../application/usecase/order/additionalBuyOrderUsecase.js";
 import {
-  NewContributionAmountTooSmallException,
-  NewContributionOrderUsecase,
-  NewContributionUserAlreadyExistsException,
-} from "../application/usecase/order/newContributionOrderUsecase.js";
+  NewOrderAmountTooSmallException,
+  NewOrderUsecase,
+  NewOrderUserAlreadyExistsException,
+} from "../application/usecase/order/newOrderUsecase.js";
 import {
   RebalanceOrderUsecase,
   RebalanceUserNotFoundException,
@@ -15,12 +15,12 @@ import {
 import { BadRequestException } from "./presentationException.js";
 import { parseAmount, parseUserId } from "./presentationPreparation.js";
 
-export interface NewContributionOrderRequest {
+export interface NewOrderRequest {
   userId: string;
   amount: string;
 }
 
-export interface AdditionalContributionOrderRequest {
+export interface AdditionalOrderRequest {
   userId: string;
   amount: string;
 }
@@ -31,28 +31,28 @@ export interface RebalanceOrderRequest {
 
 export class OrderController {
   constructor(
-    private readonly newContributionOrderUsecase: NewContributionOrderUsecase,
+    private readonly newOrderUsecase: NewOrderUsecase,
     private readonly additionalBuyOrderUsecase: AdditionalBuyOrderUsecase,
     private readonly rebalanceOrderUsecase: RebalanceOrderUsecase,
   ) {}
 
-  async newContributionOrder(req: NewContributionOrderRequest): Promise<void> {
+  async newOrder(req: NewOrderRequest): Promise<void> {
     const uid = parseUserId(req.userId);
     const amt = parseAmount(req.amount);
     try {
-      await this.newContributionOrderUsecase.run({ userId: uid, amount: amt });
+      await this.newOrderUsecase.run({ userId: uid, amount: amt });
     } catch (e) {
-      if (e instanceof NewContributionUserAlreadyExistsException) {
+      if (e instanceof NewOrderUserAlreadyExistsException) {
         throw new BadRequestException("user already has account");
       }
-      if (e instanceof NewContributionAmountTooSmallException) {
+      if (e instanceof NewOrderAmountTooSmallException) {
         throw new BadRequestException("amount is too small");
       }
       throw e;
     }
   }
 
-  async additionalContributionOrder(req: AdditionalContributionOrderRequest): Promise<void> {
+  async additionalOrder(req: AdditionalOrderRequest): Promise<void> {
     const uid = parseUserId(req.userId);
     const amt = parseAmount(req.amount);
     try {

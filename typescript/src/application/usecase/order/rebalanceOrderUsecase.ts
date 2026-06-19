@@ -1,7 +1,5 @@
 import { AccountRepository } from "../../repository/accountRepository.js";
-import { MarketPriceRepository } from "../../repository/marketPriceRepository.js";
 import { PortfolioRepository } from "../../repository/portfolioRepository.js";
-import { PortfolioService } from "../../service/portfolioService.js";
 import { UserId } from "../../../domain/userId.js";
 
 export interface RebalanceOrderUsecaseInput {
@@ -19,7 +17,6 @@ export class RebalanceOrderUsecase {
   constructor(
     private readonly accountRepository: AccountRepository,
     private readonly portfolioRepository: PortfolioRepository,
-    private readonly marketPriceRepository: MarketPriceRepository,
   ) {}
 
   async run(input: RebalanceOrderUsecaseInput): Promise<void> {
@@ -28,8 +25,7 @@ export class RebalanceOrderUsecase {
       throw new RebalanceUserNotFoundException();
     }
     const portfolio = await this.portfolioRepository.get();
-    const prices = await this.marketPriceRepository.all();
-    const updated = PortfolioService.rebalance(account, portfolio, prices);
+    const updated = account.rebalance(portfolio);
     await this.accountRepository.upsert(input.userId, updated);
   }
 }
