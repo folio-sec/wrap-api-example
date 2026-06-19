@@ -1,8 +1,6 @@
 package folio.codinginterview.application.usecase.asset;
 
 import folio.codinginterview.application.repository.AccountRepository;
-import folio.codinginterview.application.repository.MarketPriceRepository;
-import folio.codinginterview.application.service.AssetService;
 import folio.codinginterview.domain.Account;
 import folio.codinginterview.domain.StockSymbol;
 import folio.codinginterview.domain.UserId;
@@ -15,7 +13,7 @@ import java.util.concurrent.CompletableFuture;
 public final class GetAssetUsecase {
     public record Input(UserId userId) {}
 
-    public record StockOutput(StockSymbol symbol, BigDecimal evaluationAmount) {}
+    public record StockOutput(StockSymbol symbol, BigDecimal amountJpy) {}
 
     public record Output(BigDecimal cashAmount, List<StockOutput> stocks) {}
 
@@ -29,11 +27,9 @@ public final class GetAssetUsecase {
     }
 
     private final AccountRepository accountRepository;
-    private final MarketPriceRepository marketPriceRepository;
 
-    public GetAssetUsecase(AccountRepository accountRepository, MarketPriceRepository marketPriceRepository) {
+    public GetAssetUsecase(AccountRepository accountRepository) {
         this.accountRepository = accountRepository;
-        this.marketPriceRepository = marketPriceRepository;
     }
 
     public CompletableFuture<Output> run(Input input) {
@@ -44,13 +40,11 @@ public final class GetAssetUsecase {
                 return failed;
             }
             Account account = maybeAccount.get();
-            return marketPriceRepository.all().thenApply(prices -> {
-                List<StockOutput> stocks = new ArrayList<>();
-                for (var e : account.stocks()) {
-                    stocks.add(new StockOutput(e.symbol(), AssetService.evaluateStock(e, prices)));
-                }
-                return new Output(account.cash(), stocks);
-            });
+            List<StockOutput> stocks = new ArrayList<>();
+            for (var e : account.stocks()) {
+                stocks.add(new StockOutput(e.symbol(), e.amountJpy()));
+            }
+            return CompletableFuture.completedFuture(new Output(account.cash(), stocks));
         });
     }
 }

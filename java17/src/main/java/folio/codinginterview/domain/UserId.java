@@ -1,5 +1,6 @@
 package folio.codinginterview.domain;
 
+/** ユーザーIDを表す。 */
 public record UserId(String value) {
     public UserId {
         if (value == null || value.isEmpty()) {
