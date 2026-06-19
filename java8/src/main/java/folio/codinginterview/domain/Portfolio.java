@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/** 最適ポートフォリオ（銘柄ごとの構成比率）を表す。 */
 public final class Portfolio {
     private final List<PortfolioItem> items;
 

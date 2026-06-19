@@ -1,8 +1,6 @@
 package folio.codinginterview.application.usecase.asset;
 
 import folio.codinginterview.application.repository.AccountRepository;
-import folio.codinginterview.application.repository.MarketPriceRepository;
-import folio.codinginterview.application.service.AssetService;
 import folio.codinginterview.domain.Account;
 import folio.codinginterview.domain.Stock;
 import folio.codinginterview.domain.StockSymbol;
@@ -24,13 +22,13 @@ public final class GetAssetUsecase {
 
     public static final class StockOutput {
         private final StockSymbol symbol;
-        private final BigDecimal evaluationAmount;
-        public StockOutput(StockSymbol symbol, BigDecimal evaluationAmount) {
+        private final BigDecimal amountJpy;
+        public StockOutput(StockSymbol symbol, BigDecimal amountJpy) {
             this.symbol = symbol;
-            this.evaluationAmount = evaluationAmount;
+            this.amountJpy = amountJpy;
         }
         public StockSymbol symbol() { return symbol; }
-        public BigDecimal evaluationAmount() { return evaluationAmount; }
+        public BigDecimal amountJpy() { return amountJpy; }
     }
 
     public static final class Output {
@@ -54,11 +52,9 @@ public final class GetAssetUsecase {
     }
 
     private final AccountRepository accountRepository;
-    private final MarketPriceRepository marketPriceRepository;
 
-    public GetAssetUsecase(AccountRepository accountRepository, MarketPriceRepository marketPriceRepository) {
+    public GetAssetUsecase(AccountRepository accountRepository) {
         this.accountRepository = accountRepository;
-        this.marketPriceRepository = marketPriceRepository;
     }
 
     public CompletableFuture<Output> run(Input input) {
@@ -69,13 +65,11 @@ public final class GetAssetUsecase {
                 return failed;
             }
             Account account = maybeAccount.get();
-            return marketPriceRepository.all().thenApply(prices -> {
-                List<StockOutput> stocks = new ArrayList<>();
-                for (Stock e : account.stocks()) {
-                    stocks.add(new StockOutput(e.symbol(), AssetService.evaluateStock(e, prices)));
-                }
-                return new Output(account.cash(), stocks);
-            });
+            List<StockOutput> stocks = new ArrayList<>();
+            for (Stock e : account.stocks()) {
+                stocks.add(new StockOutput(e.symbol(), e.amountJpy()));
+            }
+            return CompletableFuture.completedFuture(new Output(account.cash(), stocks));
         });
     }
 }

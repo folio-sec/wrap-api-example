@@ -1,17 +1,16 @@
 package folio.codinginterview.application.usecase.order;
 
 import folio.codinginterview.application.repository.AccountRepository;
-import folio.codinginterview.application.repository.MarketPriceRepository;
 import folio.codinginterview.application.repository.PortfolioRepository;
-import folio.codinginterview.application.service.PortfolioService;
 import folio.codinginterview.domain.Account;
 import folio.codinginterview.domain.AppConstants;
 import folio.codinginterview.domain.UserId;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-public final class NewContributionOrderUsecase {
+public final class NewOrderUsecase {
     public static final class Input {
         private final UserId userId;
         private final BigDecimal amount;
@@ -39,16 +38,10 @@ public final class NewContributionOrderUsecase {
 
     private final AccountRepository accountRepository;
     private final PortfolioRepository portfolioRepository;
-    private final MarketPriceRepository marketPriceRepository;
 
-    public NewContributionOrderUsecase(
-            AccountRepository accountRepository,
-            PortfolioRepository portfolioRepository,
-            MarketPriceRepository marketPriceRepository
-    ) {
+    public NewOrderUsecase(AccountRepository accountRepository, PortfolioRepository portfolioRepository) {
         this.accountRepository = accountRepository;
         this.portfolioRepository = portfolioRepository;
-        this.marketPriceRepository = marketPriceRepository;
     }
 
     public CompletableFuture<Void> run(Input input) {
@@ -57,17 +50,16 @@ public final class NewContributionOrderUsecase {
             failed.completeExceptionally(AmountTooSmall.INSTANCE);
             return failed;
         }
-        return accountRepository.exists(input.userId()).thenCompose(exists -> {
-            if (exists) {
+        return accountRepository.find(input.userId()).thenCompose((Optional<Account> maybeAccount) -> {
+            if (maybeAccount.isPresent()) {
                 CompletableFuture<Void> failed = new CompletableFuture<>();
                 failed.completeExceptionally(UserAlreadyExists.INSTANCE);
                 return failed;
             }
-            return portfolioRepository.get().thenCompose(portfolio ->
-                    marketPriceRepository.all().thenCompose(prices -> {
-                        Account account = PortfolioService.allocateNew(input.amount(), portfolio, prices);
-                        return accountRepository.upsert(input.userId(), account);
-                    }));
+            return portfolioRepository.get().thenCompose(portfolio -> {
+                Account account = Account.openAccount(input.amount(), portfolio);
+                return accountRepository.upsert(input.userId(), account);
+            });
         });
     }
 }
