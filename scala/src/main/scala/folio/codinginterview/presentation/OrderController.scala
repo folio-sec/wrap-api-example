@@ -3,9 +3,9 @@ package folio.codinginterview.presentation
 import folio.codinginterview.application.usecase.order.AdditionalBuyOrderUsecase
 import folio.codinginterview.application.usecase.order.AdditionalBuyOrderUsecaseException
 import folio.codinginterview.application.usecase.order.AdditionalBuyOrderUsecaseInput
-import folio.codinginterview.application.usecase.order.NewContributionOrderUsecase
-import folio.codinginterview.application.usecase.order.NewContributionOrderUsecaseException
-import folio.codinginterview.application.usecase.order.NewContributionOrderUsecaseInput
+import folio.codinginterview.application.usecase.order.NewOrderUsecase
+import folio.codinginterview.application.usecase.order.NewOrderUsecaseException
+import folio.codinginterview.application.usecase.order.NewOrderUsecaseInput
 import folio.codinginterview.application.usecase.order.RebalanceOrderUsecase
 import folio.codinginterview.application.usecase.order.RebalanceOrderUsecaseException
 import folio.codinginterview.application.usecase.order.RebalanceOrderUsecaseInput
@@ -14,32 +14,32 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
 object OrderController {
-  final case class NewContributionOrderRequest(userId: String, amount: String)
-  final case class AdditionalContributionOrderRequest(userId: String, amount: String)
+  final case class NewOrderRequest(userId: String, amount: String)
+  final case class AdditionalOrderRequest(userId: String, amount: String)
   final case class RebalanceOrderRequest(userId: String)
 }
 
 final class OrderController(
-    newContributionOrderUsecase: NewContributionOrderUsecase,
+    newOrderUsecase: NewOrderUsecase,
     additionalBuyOrderUsecase: AdditionalBuyOrderUsecase,
     rebalanceOrderUsecase: RebalanceOrderUsecase
 )(using ec: ExecutionContext)
     extends PresentationPreparation {
   import OrderController.*
 
-  def newContributionOrder(req: NewContributionOrderRequest): Future[Unit] =
+  def newOrder(req: NewOrderRequest): Future[Unit] =
     for {
       uid <- parseUserId(req.userId)
       amt <- parseAmount(req.amount)
-      _ <- newContributionOrderUsecase.run(NewContributionOrderUsecaseInput(uid, amt)).recoverWith {
-        case NewContributionOrderUsecaseException.UserAlreadyExists =>
+      _ <- newOrderUsecase.run(NewOrderUsecaseInput(uid, amt)).recoverWith {
+        case NewOrderUsecaseException.UserAlreadyExists =>
           Future.failed(BadRequestException("user already has account"))
-        case NewContributionOrderUsecaseException.AmountTooSmall =>
+        case NewOrderUsecaseException.AmountTooSmall =>
           Future.failed(BadRequestException("amount is too small"))
       }
     } yield ()
 
-  def additionalContributionOrder(req: AdditionalContributionOrderRequest): Future[Unit] =
+  def additionalOrder(req: AdditionalOrderRequest): Future[Unit] =
     for {
       uid <- parseUserId(req.userId)
       amt <- parseAmount(req.amount)

@@ -1,5 +1,6 @@
 module CodingInterview
   module Domain
+    # 銘柄を表す。
     module StockSymbol
       Toyopa = :Toyopa
       Somy = :Somy

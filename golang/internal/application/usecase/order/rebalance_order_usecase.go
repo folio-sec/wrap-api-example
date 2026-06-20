@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"folio/codinginterview/internal/application/repository"
-	"folio/codinginterview/internal/application/service"
 	"folio/codinginterview/internal/domain"
 )
 
@@ -15,20 +14,17 @@ type RebalanceOrderUsecaseInput struct {
 }
 
 type RebalanceOrderUsecase struct {
-	accountRepo       repository.AccountRepository
-	portfolioRepo   repository.PortfolioRepository
-	marketPriceRepo repository.MarketPriceRepository
+	accountRepo   repository.AccountRepository
+	portfolioRepo repository.PortfolioRepository
 }
 
 func NewRebalanceOrderUsecase(
 	accountRepo repository.AccountRepository,
 	portfolioRepo repository.PortfolioRepository,
-	marketPriceRepo repository.MarketPriceRepository,
 ) *RebalanceOrderUsecase {
 	return &RebalanceOrderUsecase{
-		accountRepo:       accountRepo,
-		portfolioRepo:   portfolioRepo,
-		marketPriceRepo: marketPriceRepo,
+		accountRepo:   accountRepo,
+		portfolioRepo: portfolioRepo,
 	}
 }
 
@@ -46,15 +42,7 @@ func (u *RebalanceOrderUsecase) Run(input RebalanceOrderUsecaseInput) error {
 		return err
 	}
 
-	prices, err := u.marketPriceRepo.All()
-	if err != nil {
-		return err
-	}
-
-	updated, err := service.Rebalance(*account, portfolio, prices)
-	if err != nil {
-		return err
-	}
+	updated := account.Rebalance(portfolio)
 
 	return u.accountRepo.Upsert(input.UserId, updated)
 }

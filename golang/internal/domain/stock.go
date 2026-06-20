@@ -7,9 +7,10 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// Stock は保有銘柄（銘柄と保有額）を表す。
 type Stock struct {
-	Symbol StockSymbol
-	Qty    decimal.Decimal
+	Symbol    StockSymbol
+	AmountJpy decimal.Decimal
 }
 
 type PortfolioItem struct {
@@ -17,6 +18,7 @@ type PortfolioItem struct {
 	Rate   decimal.Decimal
 }
 
+// Portfolio は最適ポートフォリオ（銘柄ごとの構成比率）を表す。
 type Portfolio struct {
 	Items []PortfolioItem
 }
@@ -40,9 +42,4 @@ func NewPortfolio(items []PortfolioItem) (Portfolio, error) {
 		seen[item.Symbol] = struct{}{}
 	}
 	return Portfolio{Items: items}, nil
-}
-
-type Account struct {
-	Cash   decimal.Decimal
-	Stocks []Stock
 }

@@ -1,37 +1,37 @@
 require_relative "presentation_exception"
 require_relative "presentation_preparation"
-require_relative "../application/usecase/order/new_contribution_order_usecase"
+require_relative "../application/usecase/order/new_order_usecase"
 require_relative "../application/usecase/order/additional_buy_order_usecase"
 require_relative "../application/usecase/order/rebalance_order_usecase"
 
 module CodingInterview
   module Presentation
-    NewContributionOrderRequest = Struct.new(:user_id, :amount)
-    AdditionalContributionOrderRequest = Struct.new(:user_id, :amount)
+    NewOrderRequest = Struct.new(:user_id, :amount)
+    AdditionalOrderRequest = Struct.new(:user_id, :amount)
     RebalanceOrderRequest = Struct.new(:user_id)
 
     class OrderController
       include PresentationPreparation
 
-      def initialize(new_contribution_order_usecase, additional_buy_order_usecase, rebalance_order_usecase)
-        @new_contribution_order_usecase = new_contribution_order_usecase
+      def initialize(new_order_usecase, additional_buy_order_usecase, rebalance_order_usecase)
+        @new_order_usecase = new_order_usecase
         @additional_buy_order_usecase = additional_buy_order_usecase
         @rebalance_order_usecase = rebalance_order_usecase
       end
 
-      def new_contribution_order(req)
+      def new_order(req)
         uid = parse_user_id(req.user_id)
         amt = parse_amount(req.amount)
-        @new_contribution_order_usecase.run(
-          Application::Usecase::Order::NewContributionOrderUsecaseInput.new(uid, amt)
+        @new_order_usecase.run(
+          Application::Usecase::Order::NewOrderUsecaseInput.new(uid, amt)
         )
-      rescue Application::Usecase::Order::UserAlreadyExists
+      rescue Application::Usecase::Order::NewOrderUserAlreadyExistsError
         raise BadRequestException.new("user already has account")
-      rescue Application::Usecase::Order::NewContributionAmountTooSmall
+      rescue Application::Usecase::Order::NewOrderAmountTooSmallError
         raise BadRequestException.new("amount is too small")
       end
 
-      def additional_contribution_order(req)
+      def additional_order(req)
         uid = parse_user_id(req.user_id)
         amt = parse_amount(req.amount)
         @additional_buy_order_usecase.run(

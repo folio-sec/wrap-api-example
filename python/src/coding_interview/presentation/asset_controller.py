@@ -14,7 +14,7 @@ from coding_interview.presentation.preparation import parse_user_id
 @dataclass(frozen=True)
 class StockDto:
     symbol: str
-    evaluationAmount: str
+    amountJpy: str
 
 
 @dataclass(frozen=True)
@@ -40,5 +40,5 @@ class AssetController:
             raise BadRequestException("user not found")
         return GetAssetResponse(
             cashAmount=str(out.cash_amount),
-            stocks=tuple(StockDto(symbol=str(s.symbol), evaluationAmount=str(s.evaluation_amount)) for s in out.stocks),
+            stocks=tuple(StockDto(symbol=str(s.symbol), amountJpy=str(s.amount_jpy)) for s in out.stocks),
         )

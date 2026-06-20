@@ -12,13 +12,13 @@ import java.util.concurrent.CompletionException;
 public final class AssetController extends PresentationPreparation {
     public static final class StockDto {
         private final String symbol;
-        private final String evaluationAmount;
-        public StockDto(String symbol, String evaluationAmount) {
+        private final String amountJpy;
+        public StockDto(String symbol, String amountJpy) {
             this.symbol = symbol;
-            this.evaluationAmount = evaluationAmount;
+            this.amountJpy = amountJpy;
         }
         public String symbol() { return symbol; }
-        public String evaluationAmount() { return evaluationAmount; }
+        public String amountJpy() { return amountJpy; }
     }
 
     public static final class GetAssetRequest {
@@ -57,7 +57,7 @@ public final class AssetController extends PresentationPreparation {
                             }
                             List<StockDto> stocks = new ArrayList<>();
                             for (GetAssetUsecase.StockOutput e : out.stocks()) {
-                                stocks.add(new StockDto(e.symbol().toString(), e.evaluationAmount().toString()));
+                                stocks.add(new StockDto(e.symbol().toString(), e.amountJpy().toString()));
                             }
                             return new GetAssetResponse(out.cashAmount().toString(), stocks);
                         }));

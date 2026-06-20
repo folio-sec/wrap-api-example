@@ -1,13 +1,13 @@
 import {
   GetAssetUsecase,
   UserNotFoundException,
-} from "../application/usecase/asset/getAssetUsecase.js";
-import { BadRequestException } from "./presentationException.js";
-import { parseUserId } from "./presentationPreparation.js";
+} from "../application/usecase/asset/getAssetUsecase";
+import { BadRequestException } from "./presentationException";
+import { parseUserId } from "./presentationPreparation";
 
 export interface StockDto {
   symbol: string;
-  evaluationAmount: string;
+  amountJpy: string;
 }
 
 export interface GetAssetRequest {
@@ -30,7 +30,7 @@ export class AssetController {
         cashAmount: out.cashAmount.toString(),
         stocks: out.stocks.map((e) => ({
           symbol: e.symbol,
-          evaluationAmount: e.evaluationAmount.toString(),
+          amountJpy: e.amountJpy.toString(),
         })),
       };
     } catch (e) {

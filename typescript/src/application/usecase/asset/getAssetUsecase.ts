@@ -1,9 +1,7 @@
 import Decimal from "decimal.js";
-import { AccountRepository } from "../../repository/accountRepository.js";
-import { MarketPriceRepository } from "../../repository/marketPriceRepository.js";
-import { AssetService } from "../../service/assetService.js";
-import { StockSymbol } from "../../../domain/stockSymbol.js";
-import { UserId } from "../../../domain/userId.js";
+import { AccountRepository } from "../../repository/accountRepository";
+import { StockSymbol } from "../../../domain/stockSymbol";
+import { UserId } from "../../../domain/userId";
 
 export interface GetAssetUsecaseInput {
   userId: UserId;
@@ -11,7 +9,7 @@ export interface GetAssetUsecaseInput {
 
 export interface GetAssetStockOutput {
   symbol: StockSymbol;
-  evaluationAmount: Decimal;
+  amountJpy: Decimal;
 }
 
 export interface GetAssetUsecaseOutput {
@@ -27,20 +25,16 @@ export class UserNotFoundException extends GetAssetUsecaseException {
 }
 
 export class GetAssetUsecase {
-  constructor(
-    private readonly accountRepository: AccountRepository,
-    private readonly marketPriceRepository: MarketPriceRepository,
-  ) {}
+  constructor(private readonly accountRepository: AccountRepository) {}
 
   async run(input: GetAssetUsecaseInput): Promise<GetAssetUsecaseOutput> {
     const account = await this.accountRepository.find(input.userId);
     if (account === undefined) {
       throw new UserNotFoundException();
     }
-    const prices = await this.marketPriceRepository.all();
     const stocks = account.stocks.map((e) => ({
       symbol: e.symbol,
-      evaluationAmount: AssetService.evaluateStock(e, prices),
+      amountJpy: e.amountJpy,
     }));
     return { cashAmount: account.cash, stocks };
   }

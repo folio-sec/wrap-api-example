@@ -1,4 +1,4 @@
-import { Portfolio } from "../../domain/stock.js";
+import { Portfolio } from "../../domain/stock";
 
 /** 最適ポートフォリオリポジトリ。 */
 export interface PortfolioRepository {

@@ -1,3 +1,4 @@
+/** 銘柄を表す。 */
 export type StockSymbol = "Toyopa" | "Somy";
 
 export const StockSymbol = {

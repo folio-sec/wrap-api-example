@@ -22,15 +22,6 @@ final class AppConstants
         return [StockSymbol::Toyopa, StockSymbol::Somy];
     }
 
-    /** @return array<string,BigDecimal> keyed by StockSymbol->value */
-    public static function initialPrices(): array
-    {
-        return [
-            StockSymbol::Toyopa->value => new BigDecimal('4.2135'),
-            StockSymbol::Somy->value => new BigDecimal('1.2345'),
-        ];
-    }
-
     public static function initialPortfolio(): Portfolio
     {
         return new Portfolio([

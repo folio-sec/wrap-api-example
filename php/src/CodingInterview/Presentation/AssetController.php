@@ -17,7 +17,7 @@ final class GetAssetStockDto
 {
     public function __construct(
         public readonly string $symbol,
-        public readonly string $evaluationAmount,
+        public readonly string $amountJpy,
     ) {}
 }
 
@@ -46,7 +46,7 @@ final class AssetController
         }
         $stocks = [];
         foreach ($out->stocks as $e) {
-            $stocks[] = new GetAssetStockDto($e->symbol->value, $e->evaluationAmount->toString());
+            $stocks[] = new GetAssetStockDto($e->symbol->value, $e->amountJpy->toString());
         }
         return new GetAssetResponse($out->cashAmount->toString(), $stocks);
     }

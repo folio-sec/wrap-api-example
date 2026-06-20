@@ -4,8 +4,6 @@ from dataclasses import dataclass
 from decimal import Decimal
 
 from coding_interview.application.repository.account_repository import AccountRepository
-from coding_interview.application.repository.market_price_repository import MarketPriceRepository
-from coding_interview.application.service.asset_service import evaluate_stock
 from coding_interview.application.usecase.exceptions import UserNotFoundError
 from coding_interview.domain.stock_symbol import StockSymbol
 from coding_interview.domain.user_id import UserId
@@ -19,7 +17,7 @@ class GetAssetUsecaseInput:
 @dataclass(frozen=True)
 class GetAssetStockOutput:
     symbol: StockSymbol
-    evaluation_amount: Decimal
+    amount_jpy: Decimal
 
 
 @dataclass(frozen=True)
@@ -29,21 +27,15 @@ class GetAssetUsecaseOutput:
 
 
 class GetAssetUsecase:
-    def __init__(
-        self,
-        account_repository: AccountRepository,
-        market_price_repository: MarketPriceRepository,
-    ) -> None:
+    def __init__(self, account_repository: AccountRepository) -> None:
         self._account_repository = account_repository
-        self._market_price_repository = market_price_repository
 
     def run(self, input: GetAssetUsecaseInput) -> GetAssetUsecaseOutput:
         account = self._account_repository.find(input.user_id)
         if account is None:
             raise UserNotFoundError()
-        prices = self._market_price_repository.all()
         stocks = tuple(
-            GetAssetStockOutput(symbol=s.symbol, evaluation_amount=evaluate_stock(s, prices))
+            GetAssetStockOutput(symbol=s.symbol, amount_jpy=s.amount_jpy)
             for s in account.stocks
         )
         return GetAssetUsecaseOutput(cash_amount=account.cash, stocks=stocks)

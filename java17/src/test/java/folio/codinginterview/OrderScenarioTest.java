@@ -2,7 +2,6 @@ package folio.codinginterview;
 
 import folio.codinginterview.infrastructure.server.DummyServer;
 import folio.codinginterview.presentation.AssetController;
-import folio.codinginterview.presentation.MarketPriceController;
 import folio.codinginterview.presentation.OrderController;
 import folio.codinginterview.presentation.PortfolioController;
 import folio.codinginterview.presentation.PresentationException.BadRequestException;
@@ -28,18 +27,13 @@ class OrderScenarioTest {
     private final AssetController ac = server.assetController();
     private final PortfolioController pc = server.portfolioController();
     private final OrderController oc = server.orderController();
-    private final MarketPriceController mp = server.marketPriceController();
 
     @BeforeEach
     void setUp() throws Exception {
-        // initialize market price and optimal portfolio
+        // initialize optimal portfolio
         pc.updateOptimalPortfolio(new PortfolioController.UpdateOptimalPortfolioRequest(List.of(
                 new PortfolioController.PortfolioItemDto("Toyopa", "0.40"),
                 new PortfolioController.PortfolioItemDto("Somy", "0.60")
-        ))).get();
-        mp.updateMarketPrice(new MarketPriceController.UpdateMarketPriceRequest(List.of(
-                new MarketPriceController.MarketPriceItemDto("Toyopa", "2.5"),
-                new MarketPriceController.MarketPriceItemDto("Somy", "3.0")
         ))).get();
     }
 
@@ -72,41 +66,41 @@ class OrderScenarioTest {
                 new PortfolioController.PortfolioItemDto("Somy", "0.60")
         ))).get();
 
-        // And: 新規拠出を 100,000 円で注文する
-        oc.newContributionOrder(new OrderController.NewContributionOrderRequest(userId, "100000")).get();
+        // And: 新規注文を 100,000 円で注文する
+        oc.newOrder(new OrderController.NewOrderRequest(userId, "100000")).get();
 
         var asset1 = ac.getAsset(new AssetController.GetAssetRequest(userId)).get();
         var symbols1 = asset1.stocks().stream().map(AssetController.StockDto::symbol).toList();
         assertTrue(symbols1.contains("Toyopa") && symbols1.contains("Somy") && symbols1.size() == 2);
         BigDecimal total1 = new BigDecimal(asset1.cashAmount());
         for (var e : asset1.stocks()) {
-            total1 = total1.add(new BigDecimal(e.evaluationAmount()));
+            total1 = total1.add(new BigDecimal(e.amountJpy()));
         }
         assertTrue(total1.subtract(new BigDecimal(100000)).abs().compareTo(new BigDecimal(2)) <= 0);
 
-        // Then: 現金比率5%に対して現金が 5,000円、最適ポートフォリオに基づき Toyopa の評価額が 38,000 円(40%)、Somy の評価額が 57,000 円(60%) となる
+        // Then: 現金比率5%に対して現金が 5,000円、最適ポートフォリオに基づき Toyopa の保有額が 38,000 円(40%)、Somy の保有額が 57,000 円(60%) となる
         var asset1Toyopa = asset1.stocks().stream().filter(e -> e.symbol().equals("Toyopa")).findFirst().orElseThrow();
         var asset1Somy = asset1.stocks().stream().filter(e -> e.symbol().equals("Somy")).findFirst().orElseThrow();
-        assertBigDecimalEquals(new BigDecimal("38000"), new BigDecimal(asset1Toyopa.evaluationAmount()));
-        assertBigDecimalEquals(new BigDecimal("57000"), new BigDecimal(asset1Somy.evaluationAmount()));
+        assertBigDecimalEquals(new BigDecimal("38000"), new BigDecimal(asset1Toyopa.amountJpy()));
+        assertBigDecimalEquals(new BigDecimal("57000"), new BigDecimal(asset1Somy.amountJpy()));
         assertBigDecimalEquals(new BigDecimal("5000"), new BigDecimal(asset1.cashAmount()));
 
-        // When: 追加拠出を 100,000 円で注文する
-        oc.additionalContributionOrder(new OrderController.AdditionalContributionOrderRequest(userId, "100000")).get();
+        // When: 追加注文を 100,000 円で注文する
+        oc.additionalOrder(new OrderController.AdditionalOrderRequest(userId, "100000")).get();
 
         // Then: 資産合計が約 200,000 円になる
         var asset2 = ac.getAsset(new AssetController.GetAssetRequest(userId)).get();
         BigDecimal total2 = new BigDecimal(asset2.cashAmount());
         for (var e : asset2.stocks()) {
-            total2 = total2.add(new BigDecimal(e.evaluationAmount()));
+            total2 = total2.add(new BigDecimal(e.amountJpy()));
         }
         assertTrue(total2.subtract(new BigDecimal(200000)).abs().compareTo(new BigDecimal(4)) <= 0);
 
-        // And: 現金比率5%に対して現金が 10,000円、最適ポートフォリオに基づき Toyopa の評価額が 76,000 円(40%)、Somy の評価額が 114,000 円(60%) となる
+        // And: 現金比率5%に対して現金が 10,000円、最適ポートフォリオに基づき Toyopa の保有額が 76,000 円(40%)、Somy の保有額が 114,000 円(60%) となる
         var asset2Toyopa = asset2.stocks().stream().filter(e -> e.symbol().equals("Toyopa")).findFirst().orElseThrow();
         var asset2Somy = asset2.stocks().stream().filter(e -> e.symbol().equals("Somy")).findFirst().orElseThrow();
-        assertBigDecimalEquals(new BigDecimal("76000"), new BigDecimal(asset2Toyopa.evaluationAmount()));
-        assertBigDecimalEquals(new BigDecimal("114000"), new BigDecimal(asset2Somy.evaluationAmount()));
+        assertBigDecimalEquals(new BigDecimal("76000"), new BigDecimal(asset2Toyopa.amountJpy()));
+        assertBigDecimalEquals(new BigDecimal("114000"), new BigDecimal(asset2Somy.amountJpy()));
         assertBigDecimalEquals(new BigDecimal("10000"), new BigDecimal(asset2.cashAmount()));
 
         // When: 最適ポートフォリオを Toyopa=10%, Somy=90% に変更して、リバランス注文をする
@@ -120,15 +114,15 @@ class OrderScenarioTest {
         var asset3 = ac.getAsset(new AssetController.GetAssetRequest(userId)).get();
         BigDecimal total3 = new BigDecimal(asset3.cashAmount());
         for (var e : asset3.stocks()) {
-            total3 = total3.add(new BigDecimal(e.evaluationAmount()));
+            total3 = total3.add(new BigDecimal(e.amountJpy()));
         }
         assertTrue(total3.subtract(total2).abs().compareTo(new BigDecimal(4)) <= 0);
 
-        // And: 現金比率5%に対して現金が 10,000円、最適ポートフォリオに基づき Toyopa の評価額が 19,000 円(10%)、Somy の評価額が 171,000 円(90%) となる
+        // And: 現金比率5%に対して現金が 10,000円、最適ポートフォリオに基づき Toyopa の保有額が 19,000 円(10%)、Somy の保有額が 171,000 円(90%) となる
         var asset3Toyopa = asset3.stocks().stream().filter(e -> e.symbol().equals("Toyopa")).findFirst().orElseThrow();
         var asset3Somy = asset3.stocks().stream().filter(e -> e.symbol().equals("Somy")).findFirst().orElseThrow();
-        assertBigDecimalEquals(new BigDecimal("19000"), new BigDecimal(asset3Toyopa.evaluationAmount()));
-        assertBigDecimalEquals(new BigDecimal("171000"), new BigDecimal(asset3Somy.evaluationAmount()));
+        assertBigDecimalEquals(new BigDecimal("19000"), new BigDecimal(asset3Toyopa.amountJpy()));
+        assertBigDecimalEquals(new BigDecimal("171000"), new BigDecimal(asset3Somy.amountJpy()));
         assertBigDecimalEquals(new BigDecimal("10000"), new BigDecimal(asset3.cashAmount()));
     }
 }

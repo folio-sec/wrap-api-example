@@ -1,5 +1,6 @@
 module CodingInterview
   module Domain
+    # ユーザーIDを表す。
     class UserId
       attr_reader :value
 

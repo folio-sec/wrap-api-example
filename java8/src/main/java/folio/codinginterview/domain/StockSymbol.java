@@ -2,6 +2,7 @@ package folio.codinginterview.domain;
 
 import java.util.Optional;
 
+/** 銘柄を表す。 */
 public enum StockSymbol {
     Toyopa, Somy;
 

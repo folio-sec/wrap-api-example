@@ -9,7 +9,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 public final class AssetController extends PresentationPreparation {
-    public record StockDto(String symbol, String evaluationAmount) {}
+    public record StockDto(String symbol, String amountJpy) {}
 
     public record GetAssetRequest(String userId) {}
 
@@ -34,7 +34,7 @@ public final class AssetController extends PresentationPreparation {
                             }
                             List<StockDto> stocks = new ArrayList<>();
                             for (var e : out.stocks()) {
-                                stocks.add(new StockDto(e.symbol().toString(), e.evaluationAmount().toString()));
+                                stocks.add(new StockDto(e.symbol().toString(), e.amountJpy().toString()));
                             }
                             return new GetAssetResponse(out.cashAmount().toString(), stocks);
                         }));

@@ -8,7 +8,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
 object AssetController {
-  final case class StockDto(symbol: String, evaluationAmount: String)
+  final case class StockDto(symbol: String, amountJpy: String)
   final case class GetAssetRequest(userId: String)
   final case class GetAssetResponse(cashAmount: String, stocks: Seq[StockDto])
 }
@@ -27,6 +27,6 @@ final class AssetController(
       }
     } yield GetAssetResponse(
       cashAmount = out.cashAmount.toString,
-      stocks = out.stocks.map(e => StockDto(e.symbol.toString, e.evaluationAmount.toString))
+      stocks = out.stocks.map(e => StockDto(e.symbol.toString, e.amountJpy.toString))
     )
 }

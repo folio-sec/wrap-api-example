@@ -6,12 +6,12 @@ import (
 	"folio/codinginterview/internal/application/usecase/order"
 )
 
-type NewContributionOrderRequest struct {
+type NewOrderRequest struct {
 	UserId string
 	Amount string
 }
 
-type AdditionalContributionOrderRequest struct {
+type AdditionalOrderRequest struct {
 	UserId string
 	Amount string
 }
@@ -21,24 +21,24 @@ type RebalanceOrderRequest struct {
 }
 
 type OrderController struct {
-	newContributionOrderUsecase *order.NewContributionOrderUsecase
+	newOrderUsecase *order.NewOrderUsecase
 	additionalBuyOrderUsecase   *order.AdditionalBuyOrderUsecase
 	rebalanceOrderUsecase       *order.RebalanceOrderUsecase
 }
 
 func NewOrderController(
-	newContributionOrderUsecase *order.NewContributionOrderUsecase,
+	newOrderUsecase *order.NewOrderUsecase,
 	additionalBuyOrderUsecase *order.AdditionalBuyOrderUsecase,
 	rebalanceOrderUsecase *order.RebalanceOrderUsecase,
 ) *OrderController {
 	return &OrderController{
-		newContributionOrderUsecase: newContributionOrderUsecase,
+		newOrderUsecase: newOrderUsecase,
 		additionalBuyOrderUsecase:   additionalBuyOrderUsecase,
 		rebalanceOrderUsecase:       rebalanceOrderUsecase,
 	}
 }
 
-func (c *OrderController) NewContributionOrder(req NewContributionOrderRequest) error {
+func (c *OrderController) NewOrder(req NewOrderRequest) error {
 	uid, err := parseUserId(req.UserId)
 	if err != nil {
 		return err
@@ -48,12 +48,12 @@ func (c *OrderController) NewContributionOrder(req NewContributionOrderRequest) 
 		return err
 	}
 
-	err = c.newContributionOrderUsecase.Run(order.NewContributionOrderUsecaseInput{UserId: uid, Amount: amt})
+	err = c.newOrderUsecase.Run(order.NewOrderUsecaseInput{UserId: uid, Amount: amt})
 	if err != nil {
-		if errors.Is(err, order.ErrNewContributionUserAlreadyExists) {
+		if errors.Is(err, order.ErrNewOrderUserAlreadyExists) {
 			return newBadRequest("user already has account")
 		}
-		if errors.Is(err, order.ErrNewContributionAmountTooSmall) {
+		if errors.Is(err, order.ErrNewOrderAmountTooSmall) {
 			return newBadRequest("amount is too small")
 		}
 		return err
@@ -61,7 +61,7 @@ func (c *OrderController) NewContributionOrder(req NewContributionOrderRequest) 
 	return nil
 }
 
-func (c *OrderController) AdditionalContributionOrder(req AdditionalContributionOrderRequest) error {
+func (c *OrderController) AdditionalOrder(req AdditionalOrderRequest) error {
 	uid, err := parseUserId(req.UserId)
 	if err != nil {
 		return err

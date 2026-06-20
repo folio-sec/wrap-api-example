@@ -6,18 +6,21 @@ from decimal import Decimal
 from coding_interview.domain.stock_symbol import StockSymbol
 
 
+# Stock は保有銘柄（銘柄と保有額）を表す。
 @dataclass(frozen=True)
 class Stock:
     symbol: StockSymbol
-    qty: Decimal
+    amount_jpy: Decimal
 
 
+# PortfolioItem はポートフォリオの銘柄ごとの構成比率を表す。
 @dataclass(frozen=True)
 class PortfolioItem:
     symbol: StockSymbol
     rate: Decimal
 
 
+# Portfolio は最適ポートフォリオ（銘柄ごとの構成比率）を表す。
 @dataclass(frozen=True)
 class Portfolio:
     items: tuple[PortfolioItem, ...]
@@ -31,9 +34,3 @@ class Portfolio:
         symbols = [item.symbol for item in self.items]
         if len(symbols) != len(set(symbols)):
             raise ValueError("portfolio must not have duplicate symbols")
-
-
-@dataclass(frozen=True)
-class Account:
-    cash: Decimal
-    stocks: tuple[Stock, ...]

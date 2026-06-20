@@ -2,6 +2,7 @@ package folio.codinginterview.domain;
 
 import java.util.Objects;
 
+/** ユーザーIDを表す。 */
 public final class UserId {
     private final String value;
 

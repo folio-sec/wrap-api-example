@@ -8,15 +8,15 @@ use Folio\CodingInterview\Application\Usecase\Order\AdditionalBuyOrderAmountTooS
 use Folio\CodingInterview\Application\Usecase\Order\AdditionalBuyOrderUserNotFoundException;
 use Folio\CodingInterview\Application\Usecase\Order\AdditionalBuyOrderUsecase;
 use Folio\CodingInterview\Application\Usecase\Order\AdditionalBuyOrderUsecaseInput;
-use Folio\CodingInterview\Application\Usecase\Order\NewContributionOrderAmountTooSmallException;
-use Folio\CodingInterview\Application\Usecase\Order\NewContributionOrderUserAlreadyExistsException;
-use Folio\CodingInterview\Application\Usecase\Order\NewContributionOrderUsecase;
-use Folio\CodingInterview\Application\Usecase\Order\NewContributionOrderUsecaseInput;
+use Folio\CodingInterview\Application\Usecase\Order\NewOrderAmountTooSmallException;
+use Folio\CodingInterview\Application\Usecase\Order\NewOrderUserAlreadyExistsException;
+use Folio\CodingInterview\Application\Usecase\Order\NewOrderUsecase;
+use Folio\CodingInterview\Application\Usecase\Order\NewOrderUsecaseInput;
 use Folio\CodingInterview\Application\Usecase\Order\RebalanceOrderUserNotFoundException;
 use Folio\CodingInterview\Application\Usecase\Order\RebalanceOrderUsecase;
 use Folio\CodingInterview\Application\Usecase\Order\RebalanceOrderUsecaseInput;
 
-final class NewContributionOrderRequest
+final class NewOrderRequest
 {
     public function __construct(
         public readonly string $userId,
@@ -24,7 +24,7 @@ final class NewContributionOrderRequest
     ) {}
 }
 
-final class AdditionalContributionOrderRequest
+final class AdditionalOrderRequest
 {
     public function __construct(
         public readonly string $userId,
@@ -42,25 +42,25 @@ final class OrderController
     use PresentationPreparation;
 
     public function __construct(
-        private readonly NewContributionOrderUsecase $newContributionOrderUsecase,
+        private readonly NewOrderUsecase $newOrderUsecase,
         private readonly AdditionalBuyOrderUsecase $additionalBuyOrderUsecase,
         private readonly RebalanceOrderUsecase $rebalanceOrderUsecase,
     ) {}
 
-    public function newContributionOrder(NewContributionOrderRequest $req): void
+    public function newOrder(NewOrderRequest $req): void
     {
         $uid = $this->parseUserId($req->userId);
         $amt = $this->parseAmount($req->amount);
         try {
-            $this->newContributionOrderUsecase->run(new NewContributionOrderUsecaseInput($uid, $amt));
-        } catch (NewContributionOrderUserAlreadyExistsException $e) {
+            $this->newOrderUsecase->run(new NewOrderUsecaseInput($uid, $amt));
+        } catch (NewOrderUserAlreadyExistsException $e) {
             throw new BadRequestException('user already has account');
-        } catch (NewContributionOrderAmountTooSmallException $e) {
+        } catch (NewOrderAmountTooSmallException $e) {
             throw new BadRequestException('amount is too small');
         }
     }
 
-    public function additionalContributionOrder(AdditionalContributionOrderRequest $req): void
+    public function additionalOrder(AdditionalOrderRequest $req): void
     {
         $uid = $this->parseUserId($req->userId);
         $amt = $this->parseAmount($req->amount);

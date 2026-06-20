@@ -1,8 +1,6 @@
 package folio.codinginterview.application.usecase.asset
 
 import folio.codinginterview.application.repository.AccountRepository
-import folio.codinginterview.application.repository.MarketPriceRepository
-import folio.codinginterview.application.service.AssetService
 import folio.codinginterview.domain.StockSymbol
 import folio.codinginterview.domain.UserId
 import scala.concurrent.ExecutionContext
@@ -10,7 +8,7 @@ import scala.concurrent.Future
 
 final case class GetAssetUsecaseInput(userId: UserId)
 
-final case class GetAssetStockOutput(symbol: StockSymbol, evaluationAmount: BigDecimal)
+final case class GetAssetStockOutput(symbol: StockSymbol, amountJpy: BigDecimal)
 
 final case class GetAssetUsecaseOutput(
     cashAmount: BigDecimal,
@@ -23,8 +21,7 @@ object GetAssetUsecaseException {
 }
 
 final class GetAssetUsecase(
-    accountRepository: AccountRepository,
-    marketPriceRepository: MarketPriceRepository
+    accountRepository: AccountRepository
 )(using ec: ExecutionContext) {
   def run(input: GetAssetUsecaseInput): Future[GetAssetUsecaseOutput] = {
     for {
@@ -33,10 +30,9 @@ final class GetAssetUsecase(
         case Some(a) => Future.successful(a)
         case None    => Future.failed(GetAssetUsecaseException.UserNotFound)
       }
-      prices <- marketPriceRepository.all()
     } yield {
       val stocks = account.stocks.map { e =>
-        GetAssetStockOutput(e.symbol, AssetService.evaluateStock(e, prices))
+        GetAssetStockOutput(e.symbol, e.amountJpy)
       }
       GetAssetUsecaseOutput(account.cash, stocks)
     }

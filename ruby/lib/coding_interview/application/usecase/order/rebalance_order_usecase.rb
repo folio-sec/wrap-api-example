@@ -1,5 +1,3 @@
-require_relative "../../service/portfolio_service"
-
 module CodingInterview
   module Application
     module Usecase
@@ -10,10 +8,9 @@ module CodingInterview
         class RebalanceUserNotFound < RebalanceOrderUsecaseException; end
 
         class RebalanceOrderUsecase
-          def initialize(account_repository, portfolio_repository, market_price_repository)
+          def initialize(account_repository, portfolio_repository)
             @account_repository = account_repository
             @portfolio_repository = portfolio_repository
-            @market_price_repository = market_price_repository
           end
 
           def run(input)
@@ -21,8 +18,7 @@ module CodingInterview
             raise RebalanceUserNotFound if account.nil?
 
             portfolio = @portfolio_repository.get
-            prices = @market_price_repository.all
-            updated = Service::PortfolioService.rebalance(account, portfolio, prices)
+            updated = account.rebalance(portfolio)
             @account_repository.upsert(input.user_id, updated)
           end
         end

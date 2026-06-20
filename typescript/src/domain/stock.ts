@@ -1,9 +1,10 @@
 import Decimal from "decimal.js";
-import { StockSymbol } from "./stockSymbol.js";
+import { StockSymbol } from "./stockSymbol";
 
+// Stock は保有銘柄（銘柄と保有額）を表す。
 export interface Stock {
   symbol: StockSymbol;
-  qty: Decimal;
+  amountJpy: Decimal;
 }
 
 export interface PortfolioItem {
@@ -11,6 +12,7 @@ export interface PortfolioItem {
   rate: Decimal;
 }
 
+// Portfolio は最適ポートフォリオ（銘柄ごとの構成比率）を表す。
 export class Portfolio {
   readonly items: ReadonlyArray<PortfolioItem>;
 
@@ -28,9 +30,4 @@ export class Portfolio {
     }
     this.items = items;
   }
-}
-
-export interface Account {
-  cash: Decimal;
-  stocks: ReadonlyArray<Stock>;
 }

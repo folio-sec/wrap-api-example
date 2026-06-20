@@ -1,9 +1,7 @@
 package folio.codinginterview.application.usecase.order;
 
 import folio.codinginterview.application.repository.AccountRepository;
-import folio.codinginterview.application.repository.MarketPriceRepository;
 import folio.codinginterview.application.repository.PortfolioRepository;
-import folio.codinginterview.application.service.PortfolioService;
 import folio.codinginterview.domain.Account;
 import folio.codinginterview.domain.AppConstants;
 import folio.codinginterview.domain.UserId;
@@ -40,16 +38,10 @@ public final class AdditionalBuyOrderUsecase {
 
     private final AccountRepository accountRepository;
     private final PortfolioRepository portfolioRepository;
-    private final MarketPriceRepository marketPriceRepository;
 
-    public AdditionalBuyOrderUsecase(
-            AccountRepository accountRepository,
-            PortfolioRepository portfolioRepository,
-            MarketPriceRepository marketPriceRepository
-    ) {
+    public AdditionalBuyOrderUsecase(AccountRepository accountRepository, PortfolioRepository portfolioRepository) {
         this.accountRepository = accountRepository;
         this.portfolioRepository = portfolioRepository;
-        this.marketPriceRepository = marketPriceRepository;
     }
 
     public CompletableFuture<Void> run(Input input) {
@@ -65,11 +57,10 @@ public final class AdditionalBuyOrderUsecase {
                 return failed;
             }
             Account account = maybeAccount.get();
-            return portfolioRepository.get().thenCompose(portfolio ->
-                    marketPriceRepository.all().thenCompose(prices -> {
-                        Account updated = PortfolioService.allocateAdditional(account, input.amount(), portfolio, prices);
-                        return accountRepository.upsert(input.userId(), updated);
-                    }));
+            return portfolioRepository.get().thenCompose(portfolio -> {
+                Account updated = account.addFunds(input.amount(), portfolio);
+                return accountRepository.upsert(input.userId(), updated);
+            });
         });
     }
 }

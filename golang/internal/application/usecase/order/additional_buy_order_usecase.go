@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"folio/codinginterview/internal/application/repository"
-	"folio/codinginterview/internal/application/service"
 	"folio/codinginterview/internal/domain"
 
 	"github.com/shopspring/decimal"
@@ -21,20 +20,17 @@ type AdditionalBuyOrderUsecaseInput struct {
 }
 
 type AdditionalBuyOrderUsecase struct {
-	accountRepo       repository.AccountRepository
-	portfolioRepo   repository.PortfolioRepository
-	marketPriceRepo repository.MarketPriceRepository
+	accountRepo   repository.AccountRepository
+	portfolioRepo repository.PortfolioRepository
 }
 
 func NewAdditionalBuyOrderUsecase(
 	accountRepo repository.AccountRepository,
 	portfolioRepo repository.PortfolioRepository,
-	marketPriceRepo repository.MarketPriceRepository,
 ) *AdditionalBuyOrderUsecase {
 	return &AdditionalBuyOrderUsecase{
-		accountRepo:       accountRepo,
-		portfolioRepo:   portfolioRepo,
-		marketPriceRepo: marketPriceRepo,
+		accountRepo:   accountRepo,
+		portfolioRepo: portfolioRepo,
 	}
 }
 
@@ -56,15 +52,7 @@ func (u *AdditionalBuyOrderUsecase) Run(input AdditionalBuyOrderUsecaseInput) er
 		return err
 	}
 
-	prices, err := u.marketPriceRepo.All()
-	if err != nil {
-		return err
-	}
-
-	updated, err := service.AllocateAdditional(*account, input.Amount, portfolio, prices)
-	if err != nil {
-		return err
-	}
+	updated := account.AddFunds(input.Amount, portfolio)
 
 	return u.accountRepo.Upsert(input.UserId, updated)
 }

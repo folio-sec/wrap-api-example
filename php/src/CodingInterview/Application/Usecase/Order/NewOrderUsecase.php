@@ -5,14 +5,13 @@ declare(strict_types=1);
 namespace Folio\CodingInterview\Application\Usecase\Order;
 
 use Folio\CodingInterview\Application\Repository\AccountRepository;
-use Folio\CodingInterview\Application\Repository\MarketPriceRepository;
 use Folio\CodingInterview\Application\Repository\PortfolioRepository;
-use Folio\CodingInterview\Application\Service\PortfolioService;
+use Folio\CodingInterview\Domain\Account;
 use Folio\CodingInterview\Domain\AppConstants;
 use Folio\CodingInterview\Domain\BigDecimal;
 use Folio\CodingInterview\Domain\UserId;
 
-final class NewContributionOrderUsecaseInput
+final class NewOrderUsecaseInput
 {
     public function __construct(
         public readonly UserId $userId,
@@ -20,35 +19,33 @@ final class NewContributionOrderUsecaseInput
     ) {}
 }
 
-final class NewContributionOrderUserAlreadyExistsException extends \RuntimeException
+final class NewOrderUserAlreadyExistsException extends \RuntimeException
 {
     public function __construct() { parent::__construct('user already has account'); }
 }
 
-final class NewContributionOrderAmountTooSmallException extends \RuntimeException
+final class NewOrderAmountTooSmallException extends \RuntimeException
 {
     public function __construct() { parent::__construct('amount is too small'); }
 }
 
-final class NewContributionOrderUsecase
+final class NewOrderUsecase
 {
     public function __construct(
         private readonly AccountRepository $accountRepository,
         private readonly PortfolioRepository $portfolioRepository,
-        private readonly MarketPriceRepository $marketPriceRepository,
     ) {}
 
-    public function run(NewContributionOrderUsecaseInput $input): void
+    public function run(NewOrderUsecaseInput $input): void
     {
         if ($input->amount->lt(AppConstants::minOperationAmount())) {
-            throw new NewContributionOrderAmountTooSmallException();
+            throw new NewOrderAmountTooSmallException();
         }
         if ($this->accountRepository->exists($input->userId)) {
-            throw new NewContributionOrderUserAlreadyExistsException();
+            throw new NewOrderUserAlreadyExistsException();
         }
         $portfolio = $this->portfolioRepository->get();
-        $prices = $this->marketPriceRepository->all();
-        $account = PortfolioService::allocateNew($input->amount, $portfolio, $prices);
+        $account = Account::openAccount($input->amount, $portfolio);
         $this->accountRepository->upsert($input->userId, $account);
     }
 }

@@ -6,11 +6,6 @@ var (
 	CashRate           = decimal.RequireFromString("0.05")
 	MinOperationAmount = decimal.NewFromInt(10000)
 	SupportedSymbols   = []StockSymbol{Toyopa, Somy}
-
-	InitialPrices = map[StockSymbol]decimal.Decimal{
-		Toyopa: decimal.RequireFromString("4.2135"),
-		Somy:   decimal.RequireFromString("1.2345"),
-	}
 )
 
 func MustInitialPortfolio() Portfolio {

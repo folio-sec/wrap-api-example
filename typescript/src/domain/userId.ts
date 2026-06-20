@@ -1,3 +1,4 @@
+/** ユーザーIDを表す。 */
 export class UserId {
   readonly value: string;
 
