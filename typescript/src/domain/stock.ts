@@ -1,5 +1,5 @@
 import Decimal from "decimal.js";
-import { StockSymbol } from "./stockSymbol.js";
+import { StockSymbol } from "./stockSymbol";
 
 // Stock は保有銘柄（銘柄と保有額）を表す。
 export interface Stock {

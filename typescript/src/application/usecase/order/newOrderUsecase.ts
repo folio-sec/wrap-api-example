@@ -1,9 +1,9 @@
 import Decimal from "decimal.js";
-import { AccountRepository } from "../../repository/accountRepository.js";
-import { PortfolioRepository } from "../../repository/portfolioRepository.js";
-import { Account } from "../../../domain/account.js";
-import { AppConstants } from "../../../domain/appConstants.js";
-import { UserId } from "../../../domain/userId.js";
+import { AccountRepository } from "../../repository/accountRepository";
+import { PortfolioRepository } from "../../repository/portfolioRepository";
+import { Account } from "../../../domain/account";
+import { AppConstants } from "../../../domain/appConstants";
+import { UserId } from "../../../domain/userId";
 
 export interface NewOrderUsecaseInput {
   userId: UserId;

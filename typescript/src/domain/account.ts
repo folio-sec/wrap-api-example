@@ -1,7 +1,7 @@
 import Decimal from "decimal.js";
-import { Portfolio, Stock } from "./stock.js";
-import { StockSymbol } from "./stockSymbol.js";
-import { AppConstants } from "./appConstants.js";
+import { Portfolio, Stock } from "./stock";
+import { StockSymbol } from "./stockSymbol";
+import { AppConstants } from "./appConstants";
 
 // floor0 は円未満を切り捨てる（資産配分はすべて円単位で行う）。
 const floor0 = (x: Decimal): Decimal => x.toDecimalPlaces(0, Decimal.ROUND_DOWN);

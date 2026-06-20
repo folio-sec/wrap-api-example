@@ -1,6 +1,6 @@
 import Decimal from "decimal.js";
-import { UserId } from "../domain/userId.js";
-import { BadRequestException } from "./presentationException.js";
+import { UserId } from "../domain/userId";
+import { BadRequestException } from "./presentationException";
 
 export function parseUserId(s: string): UserId {
   try {

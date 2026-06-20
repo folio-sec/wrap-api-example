@@ -1,9 +1,9 @@
 import {
   GetAssetUsecase,
   UserNotFoundException,
-} from "../application/usecase/asset/getAssetUsecase.js";
-import { BadRequestException } from "./presentationException.js";
-import { parseUserId } from "./presentationPreparation.js";
+} from "../application/usecase/asset/getAssetUsecase";
+import { BadRequestException } from "./presentationException";
+import { parseUserId } from "./presentationPreparation";
 
 export interface StockDto {
   symbol: string;

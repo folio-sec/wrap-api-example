@@ -1,8 +1,8 @@
 import Decimal from "decimal.js";
-import { AccountRepository } from "../../repository/accountRepository.js";
-import { PortfolioRepository } from "../../repository/portfolioRepository.js";
-import { AppConstants } from "../../../domain/appConstants.js";
-import { UserId } from "../../../domain/userId.js";
+import { AccountRepository } from "../../repository/accountRepository";
+import { PortfolioRepository } from "../../repository/portfolioRepository";
+import { AppConstants } from "../../../domain/appConstants";
+import { UserId } from "../../../domain/userId";
 
 export interface AdditionalBuyOrderUsecaseInput {
   userId: UserId;

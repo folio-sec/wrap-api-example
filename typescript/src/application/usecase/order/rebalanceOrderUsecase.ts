@@ -1,6 +1,6 @@
-import { AccountRepository } from "../../repository/accountRepository.js";
-import { PortfolioRepository } from "../../repository/portfolioRepository.js";
-import { UserId } from "../../../domain/userId.js";
+import { AccountRepository } from "../../repository/accountRepository";
+import { PortfolioRepository } from "../../repository/portfolioRepository";
+import { UserId } from "../../../domain/userId";
 
 export interface RebalanceOrderUsecaseInput {
   userId: UserId;

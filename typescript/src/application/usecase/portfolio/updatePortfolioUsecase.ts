@@ -1,7 +1,7 @@
 import Decimal from "decimal.js";
-import { PortfolioRepository } from "../../repository/portfolioRepository.js";
-import { Portfolio } from "../../../domain/stock.js";
-import { StockSymbol } from "../../../domain/stockSymbol.js";
+import { PortfolioRepository } from "../../repository/portfolioRepository";
+import { Portfolio } from "../../../domain/stock";
+import { StockSymbol } from "../../../domain/stockSymbol";
 
 export interface UpdatePortfolioItemInput {
   symbol: StockSymbol;

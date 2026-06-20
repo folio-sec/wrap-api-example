@@ -1,14 +1,14 @@
 import Decimal from "decimal.js";
 import {
   GetLatestPortfolioUsecase,
-} from "../application/usecase/portfolio/getLatestPortfolioUsecase.js";
+} from "../application/usecase/portfolio/getLatestPortfolioUsecase";
 import {
   InvalidPortfolioException,
   UpdatePortfolioItemInput,
   UpdatePortfolioUsecase,
-} from "../application/usecase/portfolio/updatePortfolioUsecase.js";
-import { StockSymbol } from "../domain/stockSymbol.js";
-import { BadRequestException } from "./presentationException.js";
+} from "../application/usecase/portfolio/updatePortfolioUsecase";
+import { StockSymbol } from "../domain/stockSymbol";
+import { BadRequestException } from "./presentationException";
 
 export interface PortfolioItemDto {
   symbol: string;

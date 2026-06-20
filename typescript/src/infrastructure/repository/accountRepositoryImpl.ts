@@ -1,6 +1,6 @@
-import { AccountRepository } from "../../application/repository/accountRepository.js";
-import { Account } from "../../domain/account.js";
-import { UserId } from "../../domain/userId.js";
+import { AccountRepository } from "../../application/repository/accountRepository";
+import { Account } from "../../domain/account";
+import { UserId } from "../../domain/userId";
 
 export class AccountRepositoryImpl implements AccountRepository {
   private readonly store: Map<string, Account> = new Map();

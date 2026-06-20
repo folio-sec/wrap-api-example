@@ -1,6 +1,6 @@
 import Decimal from "decimal.js";
-import { StockSymbol } from "./stockSymbol.js";
-import { Portfolio } from "./stock.js";
+import { StockSymbol } from "./stockSymbol";
+import { Portfolio } from "./stock";
 
 /** アプリケーション定数。 */
 export const AppConstants = {

@@ -1,5 +1,5 @@
-import { Account } from "../../domain/account.js";
-import { UserId } from "../../domain/userId.js";
+import { Account } from "../../domain/account";
+import { UserId } from "../../domain/userId";
 
 /** 口座管理リポジトリ。 */
 export interface AccountRepository {

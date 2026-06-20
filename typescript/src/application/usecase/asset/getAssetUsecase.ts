@@ -1,7 +1,7 @@
 import Decimal from "decimal.js";
-import { AccountRepository } from "../../repository/accountRepository.js";
-import { StockSymbol } from "../../../domain/stockSymbol.js";
-import { UserId } from "../../../domain/userId.js";
+import { AccountRepository } from "../../repository/accountRepository";
+import { StockSymbol } from "../../../domain/stockSymbol";
+import { UserId } from "../../../domain/userId";
 
 export interface GetAssetUsecaseInput {
   userId: UserId;

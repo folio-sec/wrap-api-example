@@ -1,4 +1,4 @@
-import { DummyServer } from "./dummyServer.js";
+import { DummyServer } from "./dummyServer";
 
 function main(): void {
   DummyServer.default();

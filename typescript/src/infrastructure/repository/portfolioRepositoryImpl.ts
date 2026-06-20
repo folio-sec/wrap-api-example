@@ -1,6 +1,6 @@
-import { PortfolioRepository } from "../../application/repository/portfolioRepository.js";
-import { AppConstants } from "../../domain/appConstants.js";
-import { Portfolio } from "../../domain/stock.js";
+import { PortfolioRepository } from "../../application/repository/portfolioRepository";
+import { AppConstants } from "../../domain/appConstants";
+import { Portfolio } from "../../domain/stock";
 
 export class PortfolioRepositoryImpl implements PortfolioRepository {
   private portfolio: Portfolio = AppConstants.initialPortfolio;
