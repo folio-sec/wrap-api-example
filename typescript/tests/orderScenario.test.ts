@@ -64,7 +64,7 @@ describe("Investment Operation", () => {
     expect(new Decimal(asset2.cashAmount).equals("10000")).toBe(true);      // 200000 - 76000 - 114000
   });
 
-  it("asset3: リバランス注文（課題2: 現金比率を確保しないバグがある）", async () => {
+  it("asset3: リバランス注文が正しく機能する", async () => {
     const userId = randomUUID();
     await server.orderController.newOrder({ userId, amount: "100000" });
     await server.orderController.additionalOrder({ userId, amount: "100000" });
