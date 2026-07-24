@@ -12,7 +12,7 @@ git add .
 git commit -m init
 
 # setup
-python3 -m venv .venv
+python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 
