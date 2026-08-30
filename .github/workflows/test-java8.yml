@@ -1,16 +1,7 @@
 name: Java 8
 
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/test-java8.yml'
-      - 'java8/src/**'
-      - 'java8/pom.xml'
-      - '.github/scripts/expect-order-scenario-failure.sh'
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  workflow_call:
 
 permissions:
   contents: read

@@ -1,18 +1,7 @@
 name: Ruby
 
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/test-ruby.yml'
-      - 'ruby/lib/**'
-      - 'ruby/spec/**'
-      - 'ruby/Gemfile'
-      - 'ruby/Gemfile.lock'
-      - '.github/scripts/expect-order-scenario-failure.sh'
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  workflow_call:
 
 permissions:
   contents: read

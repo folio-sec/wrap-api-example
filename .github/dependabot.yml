@@ -1,0 +1,254 @@
+# https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+version: 2
+
+updates:
+  # ---------------- GitHub Actions ----------------
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - ci
+    commit-message:
+      prefix: chore
+      include: scope
+    cooldown:
+      default-days: 3
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # ---------------- Go ----------------
+  - package-ecosystem: gomod
+    directory: /golang
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - golang
+    commit-message:
+      prefix: chore
+      include: scope
+    cooldown:
+      default-days: 3
+    groups:
+      golang:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # ---------------- Java 17 ----------------
+  - package-ecosystem: maven
+    directory: /java17
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - java17
+    commit-message:
+      prefix: chore
+      include: scope
+    cooldown:
+      default-days: 3
+    groups:
+      java17:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # ---------------- Java 8 ----------------
+  - package-ecosystem: maven
+    directory: /java8
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - java8
+    commit-message:
+      prefix: chore
+      include: scope
+    cooldown:
+      default-days: 3
+    groups:
+      java8:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # ---------------- PHP ----------------
+  - package-ecosystem: composer
+    directory: /php
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - php
+    commit-message:
+      prefix: chore
+      include: scope
+    cooldown:
+      default-days: 3
+    ignore:
+      # PHP 本体の major は自動で上げない
+      - dependency-name: php
+        update-types:
+          - version-update:semver-major
+    groups:
+      php:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # ---------------- Python ----------------
+  - package-ecosystem: pip
+    directory: /python
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - python
+    commit-message:
+      prefix: chore
+      include: scope
+    cooldown:
+      default-days: 3
+    groups:
+      python:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # ---------------- Ruby ----------------
+  - package-ecosystem: bundler
+    directory: /ruby
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - ruby
+    commit-message:
+      prefix: chore
+      include: scope
+    cooldown:
+      default-days: 3
+    groups:
+      ruby:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # ---------------- Scala ----------------
+  - package-ecosystem: sbt
+    directory: /scala
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - scala
+    commit-message:
+      prefix: chore
+      include: scope
+    cooldown:
+      default-days: 3
+    ignore:
+      # Scala / sbt 本体の major は自動で上げない
+      # Dependabot は build.sbt の scalaVersion を scala(3)-library として、
+      # project/build.properties の sbt.version を org.scala-sbt:sbt として扱う
+      - dependency-name: org.scala-lang:scala3-library_3
+        update-types:
+          - version-update:semver-major
+      - dependency-name: org.scala-lang:scala-library
+        update-types:
+          - version-update:semver-major
+      - dependency-name: org.scala-sbt:sbt
+        update-types:
+          - version-update:semver-major
+    groups:
+      scala:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # ---------------- TypeScript ----------------
+  - package-ecosystem: npm
+    directory: /typescript
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - typescript
+    commit-message:
+      prefix: chore
+      include: scope
+    cooldown:
+      default-days: 3
+    ignore:
+      # TypeScript / Node.js 本体の major は自動で上げない
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
+      - dependency-name: "@types/node"
+        update-types:
+          - version-update:semver-major
+    groups:
+      typescript:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
