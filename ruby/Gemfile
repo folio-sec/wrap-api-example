@@ -1,6 +1,5 @@
 source "https://rubygems.org"
 
-# bigdecimal は Ruby 3.4 で default gem から外れたため、明示的に依存を宣言する
 gem "bigdecimal", "~> 4.1"
 
 group :test do
