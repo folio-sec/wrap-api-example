@@ -6,6 +6,7 @@ on:
       - '.github/workflows/test-python.yml'
       - 'python/src/**'
       - 'python/pyproject.toml'
+      - '.github/scripts/expect-order-scenario-failure.sh'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -35,3 +36,9 @@ jobs:
       - run: pip install ".[dev]"
       - run: find src -name '*.py' -exec python -m py_compile {} +
       - run: python -m pytest tests/test_optimal_portfolio_scenario.py
+      - name: Order scenario test should fail at the rebalance assertion
+        run: |
+          "${GITHUB_WORKSPACE}/.github/scripts/expect-order-scenario-failure.sh" \
+            python -m pytest tests/test_order_scenario.py
+        env:
+          EXPECTED_FAILURE: "assert Decimal('20000') == Decimal('19000')"

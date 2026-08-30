@@ -6,7 +6,9 @@ on:
       - '.github/workflows/test-typescript.yml'
       - 'typescript/src/**'
       - 'typescript/package.json'
+      - 'typescript/tests/**'
       - 'typescript/tsconfig.json'
+      - '.github/scripts/expect-order-scenario-failure.sh'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -37,3 +39,9 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npx vitest run tests/optimalPortfolioScenario.test.ts
+      - name: Order scenario test should fail at the rebalance assertion
+        run: |
+          "${GITHUB_WORKSPACE}/.github/scripts/expect-order-scenario-failure.sh" \
+            npx vitest run tests/orderScenario.test.ts
+        env:
+          EXPECTED_FAILURE: 'asset3 Toyopa amount: got 20000, want 19000'
