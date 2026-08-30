@@ -1,0 +1,189 @@
+name: CI
+
+# 各言語のテストをここから呼び出し、最後に status を集約する。
+# branch protection / ruleset の required status checks には
+# このワークフローの "CI / All checks passed" だけを登録すればよい。
+on:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    name: Detect changes
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      golang: ${{ steps.filter.outputs.golang }}
+      java17: ${{ steps.filter.outputs.java17 }}
+      java8: ${{ steps.filter.outputs.java8 }}
+      php: ${{ steps.filter.outputs.php }}
+      python: ${{ steps.filter.outputs.python }}
+      ruby: ${{ steps.filter.outputs.ruby }}
+      scala: ${{ steps.filter.outputs.scala }}
+      typescript: ${{ steps.filter.outputs.typescript }}
+    steps:
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        id: filter
+        with:
+          filters: |
+            shared: &shared
+              - '.github/workflows/ci.yml'
+              - '.github/scripts/expect-order-scenario-failure.sh'
+            golang:
+              - *shared
+              - '.github/workflows/test-go.yml'
+              - 'golang/**.go'
+              - 'golang/go.mod'
+              - 'golang/go.sum'
+            java17:
+              - *shared
+              - '.github/workflows/test-java17.yml'
+              - 'java17/src/**'
+              - 'java17/pom.xml'
+            java8:
+              - *shared
+              - '.github/workflows/test-java8.yml'
+              - 'java8/src/**'
+              - 'java8/pom.xml'
+            php:
+              - *shared
+              - '.github/workflows/test-php.yml'
+              - 'php/src/**'
+              - 'php/tests/**'
+              - 'php/composer.json'
+            python:
+              - *shared
+              - '.github/workflows/test-python.yml'
+              - 'python/src/**'
+              - 'python/tests/**'
+              - 'python/pyproject.toml'
+            ruby:
+              - *shared
+              - '.github/workflows/test-ruby.yml'
+              - 'ruby/lib/**'
+              - 'ruby/spec/**'
+              - 'ruby/Gemfile'
+              - 'ruby/Gemfile.lock'
+            scala:
+              - *shared
+              - '.github/workflows/test-scala.yml'
+              - 'scala/src/**'
+              - 'scala/build.sbt'
+              - 'scala/project/**'
+            typescript:
+              - *shared
+              - '.github/workflows/test-typescript.yml'
+              - 'typescript/src/**'
+              - 'typescript/tests/**'
+              - 'typescript/package.json'
+              - 'typescript/package-lock.json'
+              - 'typescript/tsconfig.json'
+
+  golang:
+    needs: changes
+    if: needs.changes.outputs.golang == 'true'
+    name: Go
+    uses: ./.github/workflows/test-go.yml
+    permissions:
+      contents: read
+
+  java17:
+    needs: changes
+    if: needs.changes.outputs.java17 == 'true'
+    name: Java 17
+    uses: ./.github/workflows/test-java17.yml
+    permissions:
+      contents: read
+
+  java8:
+    needs: changes
+    if: needs.changes.outputs.java8 == 'true'
+    name: Java 8
+    uses: ./.github/workflows/test-java8.yml
+    permissions:
+      contents: read
+
+  php:
+    needs: changes
+    if: needs.changes.outputs.php == 'true'
+    name: PHP
+    uses: ./.github/workflows/test-php.yml
+    permissions:
+      contents: read
+
+  python:
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
+    name: Python
+    uses: ./.github/workflows/test-python.yml
+    permissions:
+      contents: read
+
+  ruby:
+    needs: changes
+    if: needs.changes.outputs.ruby == 'true'
+    name: Ruby
+    uses: ./.github/workflows/test-ruby.yml
+    permissions:
+      contents: read
+
+  scala:
+    needs: changes
+    if: needs.changes.outputs.scala == 'true'
+    name: Scala
+    uses: ./.github/workflows/test-scala.yml
+    permissions:
+      contents: read
+
+  typescript:
+    needs: changes
+    if: needs.changes.outputs.typescript == 'true'
+    name: TypeScript
+    uses: ./.github/workflows/test-typescript.yml
+    permissions:
+      contents: read
+
+  # required status check にはこのジョブだけを指定する。
+  # skip された言語は success 扱い、1 つでも失敗すればここで落ちる。
+  all-checks:
+    if: always()
+    needs:
+      - changes
+      - golang
+      - java17
+      - java8
+      - php
+      - python
+      - ruby
+      - scala
+      - typescript
+    runs-on: ubuntu-latest
+    name: All checks passed
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Fail if any job did not succeed
+        run: |
+          failed="$(echo "${NEEDS}" | jq -r '
+            to_entries[]
+            | select(.value.result != "success" and .value.result != "skipped")
+            | "\(.key): \(.value.result)"
+          ')"
+          if [ -n "${failed}" ]; then
+            echo "::error::following jobs did not succeed"
+            echo "${failed}"
+            exit 1
+          fi
+          echo "all jobs succeeded or were skipped"
+        env:
+          NEEDS: ${{ toJSON(needs) }}

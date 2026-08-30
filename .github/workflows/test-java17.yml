@@ -1,16 +1,7 @@
 name: Java 17
 
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/test-java17.yml'
-      - 'java17/src/**'
-      - 'java17/pom.xml'
-      - '.github/scripts/expect-order-scenario-failure.sh'
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  workflow_call:
 
 permissions:
   contents: read

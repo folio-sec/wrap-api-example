@@ -1,16 +1,7 @@
 name: PHP
 
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/test-php.yml'
-      - 'php/src/**'
-      - 'php/composer.json'
-      - '.github/scripts/expect-order-scenario-failure.sh'
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  workflow_call:
 
 permissions:
   contents: read
