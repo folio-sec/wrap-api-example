@@ -12,7 +12,7 @@ jobs:
     name: Build (Java ${{ matrix.java-version }})
     strategy:
       matrix:
-        java-version: ['17', '21']
+        java-version: ['17', '21', '25']
     timeout-minutes: 5
     defaults:
       run:
