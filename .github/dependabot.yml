@@ -94,6 +94,11 @@ updates:
       include: scope
     cooldown:
       default-days: 3
+    ignore:
+      # JUnit 6 は Java 17 以上が必要なため java8 では上げられない
+      - dependency-name: org.junit.jupiter:junit-jupiter
+        update-types:
+          - version-update:semver-major
     groups:
       java8:
         patterns:
