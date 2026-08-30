@@ -2,7 +2,7 @@
 
 ## 開発
 
-- Ruby 3.3+ (or Ruby 4.0+)
+- Ruby 3.2+ (or Ruby 4.0+)
 
 ```shell
 # 準備
