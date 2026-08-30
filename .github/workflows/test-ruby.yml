@@ -5,7 +5,9 @@ on:
     paths:
       - '.github/workflows/test-ruby.yml'
       - 'ruby/lib/**'
+      - 'ruby/spec/**'
       - 'ruby/Gemfile'
+      - 'ruby/Gemfile.lock'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -17,8 +19,11 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: Build
+    name: Build (Ruby ${{ matrix.ruby-version }})
     timeout-minutes: 5
+    strategy:
+      matrix:
+        ruby-version: ['3.2', '3.3', '3.4', '4.0']
     defaults:
       run:
         working-directory: ruby
@@ -28,9 +33,9 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
-      - uses: ruby/setup-ruby@354a1ad156761f5ee2b7b13fa8e09943a5e8d252 # v1
+      - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1
         with:
-          ruby-version: '3.3'
+          ruby-version: ${{ matrix.ruby-version }}
           bundler-cache: true
           working-directory: ruby
       - run: find lib -name '*.rb' -exec ruby -c {} +
