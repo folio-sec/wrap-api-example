@@ -12,8 +12,8 @@
     "decimal.js": "^10.4.3"
   },
   "devDependencies": {
-    "@types/node": "^20.11.0",
-    "tsx": "^4.7.0",
+    "@types/node": "^20.19.43",
+    "tsx": "^4.23.12",
     "typescript": "^5.4.0",
     "vitest": "^1.6.0"
   }
