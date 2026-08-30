@@ -8,6 +8,7 @@ on:
       - 'ruby/spec/**'
       - 'ruby/Gemfile'
       - 'ruby/Gemfile.lock'
+      - '.github/scripts/expect-order-scenario-failure.sh'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -40,3 +41,9 @@ jobs:
           working-directory: ruby
       - run: find lib -name '*.rb' -exec ruby -c {} +
       - run: bundle exec rspec spec/optimal_portfolio_scenario_spec.rb
+      - name: Order scenario test should fail at the rebalance assertion
+        run: |
+          "${GITHUB_WORKSPACE}/.github/scripts/expect-order-scenario-failure.sh" \
+            bundle exec rspec spec/order_scenario_spec.rb
+        env:
+          EXPECTED_FAILURE: 'expect(BigDecimal(asset3_toyopa.amount_jpy)).to eq(BigDecimal("19000"))'

@@ -6,6 +6,7 @@ on:
       - '.github/workflows/test-java8.yml'
       - 'java8/src/**'
       - 'java8/pom.xml'
+      - '.github/scripts/expect-order-scenario-failure.sh'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -34,3 +35,9 @@ jobs:
           java-version: '8'
           cache: maven
       - run: ./mvnw test -q -Dtest=OptimalPortfolioScenarioTest
+      - name: Order scenario test should fail at the rebalance assertion
+        run: |
+          "${GITHUB_WORKSPACE}/.github/scripts/expect-order-scenario-failure.sh" \
+            ./mvnw test -q -Dtest=OrderScenarioTest
+        env:
+          EXPECTED_FAILURE: 'expected 19000 but was 20000'

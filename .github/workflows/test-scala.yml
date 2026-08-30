@@ -7,6 +7,7 @@ on:
       - 'scala/src/**'
       - 'scala/build.sbt'
       - 'scala/project/**'
+      - '.github/scripts/expect-order-scenario-failure.sh'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -40,3 +41,9 @@ jobs:
       - uses: sbt/setup-sbt@af116cce31c00823d3903ce687f9cda3a4f19f1b # v1
       - run: sbt compile
       - run: sbt "testOnly folio.codinginterview.OptimalPortfolioScenario"
+      - name: Order scenario test should fail at the rebalance assertion
+        run: |
+          "${GITHUB_WORKSPACE}/.github/scripts/expect-order-scenario-failure.sh" \
+            sbt "testOnly folio.codinginterview.OrderScenario"
+        env:
+          EXPECTED_FAILURE: 'Expected 19000, but got 20000'

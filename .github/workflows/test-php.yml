@@ -6,6 +6,7 @@ on:
       - '.github/workflows/test-php.yml'
       - 'php/src/**'
       - 'php/composer.json'
+      - '.github/scripts/expect-order-scenario-failure.sh'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -34,3 +35,12 @@ jobs:
       - run: composer install --no-interaction --prefer-dist
       - run: find src -name '*.php' -exec php -l {} +
       - run: ./vendor/bin/phpunit tests/OptimalPortfolioScenarioTest.php
+      - name: Order scenario test should fail at the rebalance assertion
+        run: |
+          "${GITHUB_WORKSPACE}/.github/scripts/expect-order-scenario-failure.sh" \
+            ./vendor/bin/phpunit tests/OrderScenarioTest.php
+        env:
+          EXPECTED_FAILURE: |
+            Failed asserting that two strings are identical.
+            '19000'
+            '20000'
