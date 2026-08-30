@@ -2,7 +2,7 @@
 
 ## 開発
 
-- Ruby 3.0+
+- Ruby 3.3+ (Ruby 4.0 でも動作します)
 
 ```shell
 # 準備
@@ -11,7 +11,8 @@ git add .
 git commit -m init
 
 # setup
-bundle install --path vendor/bundle
+bundle config set --local path vendor/bundle
+bundle install
 
 # test
 bundle exec rspec

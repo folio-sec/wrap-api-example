@@ -5,7 +5,9 @@ on:
     paths:
       - '.github/workflows/test-ruby.yml'
       - 'ruby/lib/**'
+      - 'ruby/spec/**'
       - 'ruby/Gemfile'
+      - 'ruby/Gemfile.lock'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
