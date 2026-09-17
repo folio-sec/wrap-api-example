@@ -3,9 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "engines": {
-    "node": "^22.12.0 || ^24.0.0 || >=26.0.0"
-  },
   "scripts": {
     "build": "tsc -p .",
     "start": "tsx src/infrastructure/server/main.ts",
