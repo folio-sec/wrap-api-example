@@ -1,5 +1,5 @@
 require_relative "../../../domain/app_constants"
-require_relative "../../../domain/stock"
+require_relative "../../../domain/account"
 
 module CodingInterview
   module Application
