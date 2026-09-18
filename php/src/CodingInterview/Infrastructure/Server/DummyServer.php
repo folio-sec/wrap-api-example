@@ -7,7 +7,6 @@ namespace Folio\CodingInterview\Infrastructure\Server;
 use Folio\CodingInterview\Application\Usecase\Asset\GetAssetUsecase;
 use Folio\CodingInterview\Application\Usecase\Order\AdditionalBuyOrderUsecase;
 use Folio\CodingInterview\Application\Usecase\Order\NewOrderUsecase;
-use Folio\CodingInterview\Application\Usecase\Order\RebalanceOrderUsecase;
 use Folio\CodingInterview\Application\Usecase\Portfolio\GetLatestPortfolioUsecase;
 use Folio\CodingInterview\Application\Usecase\Portfolio\UpdatePortfolioUsecase;
 use Folio\CodingInterview\Infrastructure\Repository\AccountRepositoryImpl;
@@ -34,12 +33,11 @@ final class DummyServer
         $updatePortfolioUsecase = new UpdatePortfolioUsecase($portfolioRepository);
         $newOrderUsecase = new NewOrderUsecase($accountRepository, $portfolioRepository);
         $additionalBuyOrderUsecase = new AdditionalBuyOrderUsecase($accountRepository, $portfolioRepository);
-        $rebalanceOrderUsecase = new RebalanceOrderUsecase($accountRepository, $portfolioRepository);
 
         return new DummyServer(
             new AssetController($getAssetUsecase),
             new PortfolioController($getLatestPortfolioUsecase, $updatePortfolioUsecase),
-            new OrderController($newOrderUsecase, $additionalBuyOrderUsecase, $rebalanceOrderUsecase),
+            new OrderController($newOrderUsecase, $additionalBuyOrderUsecase),
         );
     }
 }

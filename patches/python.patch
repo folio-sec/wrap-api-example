@@ -1,0 +1,309 @@
+diff --git b/README.md a/README.md
+index 7c3c595..6f0b529 100644
+--- b/README.md
++++ a/README.md
+@@ -35,3 +35,67 @@ pip install -e ".[dev]"
+ # test
+ pytest -v
+ ```
++
++## サービス概要
++
++このアプリケーションは、FOLIOで提供されるロボアドバイザーサービスを模倣したバックエンドAPIサーバーです。
++
++- ロボアドバイザーは、気軽に投資が出来るサービスとなっています
++- お客様は「10万円投資がしたい」となったら、10万円を新規注文で入れていただくと投資が始められます
++- どういった銘柄を運用するかは、お客様ではなく、サービスで管理されたポートフォリオに基づき運用されます
++
++### サービスについて
++
++- **顧客の口座**
++  - 初めて資金を投入することを新規注文と呼び、この注文を入れることで口座が開き資産運用が始まります
++  - 口座の中で資産を管理することになります
++- **顧客口座の資産**
++  - 顧客は現金と銘柄及びその資産額を口座内で保有します
++    - 簡略化のために、顧客は銘柄ごとに保有額（円）を保持します（例: Toyopa銘柄を 500 円分保有する）
++    - 本来は、口座には株数が保持されますが、各銘柄を資産額（円）で直接保有するものとします（市場価格の概念も取り扱いません）
++  - また、総資産の内、5%は常に現金で保持します
++    - 例: 総資産100万円のうち5万円（5%）を現金として保持し、残り95万円分をいくつかの銘柄で保有する
++- **最適ポートフォリオ**
++  - サービスで管理する、保有銘柄を100%配分した組み合わせのことを最適ポートフォリオと呼びます
++    - 例: 合計100%のうち、Toyopa銘柄を40%・Somy銘柄を60%の最適ポートフォリオが現在設定されている
++  - 購入時・売却時・リバランス時には、注文後の資産比率が __現在の最適ポートフォリオ__ に近づける形での調整を実施します
++    - 例: 先のポートフォリオ例の場合、100万円を新規注文した場合、 5万円の現金 + Toyopa銘柄38万円分 + Somy銘柄57万円分 が口座内で管理されます
++    - なお、APIを叩くと __即時__ 売買が成立し資産に反映出来るものとします（受け渡し日などの概念はありません）
++- **各種注文**
++  - __新規注文__
++    - 初めて資金を投入することで、新規に口座開設が行われ資産運用が始まるもの
++  - __追加注文__
++    - 新規注文後に、追加で資金を投入すること
++  - __全売却注文__
++    - 運用中の銘柄を全て売却して現金にすること
++  - __リバランス注文__
++    - 運用されている資産を、サービスで保有する最適ポートフォリオに近づけるよう調整すること
++    - 例:
++      - 新規注文時には、最適ポートフォリオが `Toyopa銘柄30% + Somy銘柄70%` で構成される場合、顧客口座においても同様の資産配分となる
++      - その後にサービス上で最適ポートフォリオが `Toyopa銘柄50% + Somy銘柄50%` に更新される
++      - 更新後に、リバランス注文を入れると、顧客の口座も最新の最適ポートフォリオ通りの内容になる
++        - この場合、Toyopa銘柄が20%分購入され、Somy銘柄が20%分売却される
++
++### 実装について
++
++- Repository はモック実装としてin-memoryにデータを保持していますが、RDBを使う想定で回答してください。
++
++## 確認観点
++
++- 成果を出すこと
++- 成果物についての理解・責任を持つこと
++
++## 課題
++
++以下の課題をAIを用いて、あなた自身の言葉・実装で回答してください。
++
++1. API/アーキテクチャについてAIと協力しながら自分の言葉で説明してください
++    1. 全てのAPIについて説明する必要はなく、パッケージ構成やそれらの役割・関連について説明してください
++2. テストが全て通るようにしてください
++    1. まずは現状のテストを走らせて、どのような内容で落ちているかを説明してください
++    1. また、実装バグがあるため、テストコードは一切変更せず、AIと協力しながら実装を修正してください
++    1. その上で、修正内容について説明をしてください
++3. 全売却APIを実装してください
++    1. 全売却後の現金の取り扱いに関しての方針を決めてください
++    1. ストレッチ: 売却後の現金は銀行APIへ連携
++4. （部分売却APIを実装してください）
+diff --git b/src/coding_interview/application/usecase/order/rebalance_order_usecase.py a/src/coding_interview/application/usecase/order/rebalance_order_usecase.py
+new file mode 100644
+index 0000000..7399ed6
+--- /dev/null
++++ a/src/coding_interview/application/usecase/order/rebalance_order_usecase.py
+@@ -0,0 +1,31 @@
++from __future__ import annotations
++
++from dataclasses import dataclass
++
++from coding_interview.application.repository.account_repository import AccountRepository
++from coding_interview.application.repository.portfolio_repository import PortfolioRepository
++from coding_interview.application.usecase.exceptions import UserNotFoundError
++from coding_interview.domain.user_id import UserId
++
++
++@dataclass(frozen=True)
++class RebalanceOrderUsecaseInput:
++    user_id: UserId
++
++
++class RebalanceOrderUsecase:
++    def __init__(
++        self,
++        account_repository: AccountRepository,
++        portfolio_repository: PortfolioRepository,
++    ) -> None:
++        self._account_repository = account_repository
++        self._portfolio_repository = portfolio_repository
++
++    def run(self, input: RebalanceOrderUsecaseInput) -> None:
++        account = self._account_repository.find(input.user_id)
++        if account is None:
++            raise UserNotFoundError()
++        portfolio = self._portfolio_repository.get()
++        new_account = account.rebalance(portfolio)
++        self._account_repository.upsert(input.user_id, new_account)
+diff --git b/src/coding_interview/domain/account.py a/src/coding_interview/domain/account.py
+index 3ca0458..bef2d40 100644
+--- b/src/coding_interview/domain/account.py
++++ a/src/coding_interview/domain/account.py
+@@ -64,3 +64,16 @@ def add_funds(self, amount: Decimal, portfolio: Portfolio) -> "Account":
+         all_stocks = tuple(new_portfolio_stocks + preserved_stocks)
+         final_amount = sum(s.amount_jpy for s in all_stocks)
+         return Account(cash=total_after - final_amount, stocks=all_stocks)
++
++    def rebalance(self, portfolio: Portfolio) -> "Account":
++        """保有資産を最適ポートフォリオの比率に近づける。"""
++        # XXX this implementation might not be correct
++        investable = self.total()
++        new_stocks: list[Stock] = []
++        used_for_stocks = Decimal(0)
++        for item in portfolio.items:
++            amt = _floor0(investable * item.rate)
++            new_stocks.append(Stock(item.symbol, amt))
++            used_for_stocks += amt
++        final_cash = investable - used_for_stocks
++        return Account(cash=final_cash, stocks=tuple(new_stocks))
+diff --git b/src/coding_interview/infrastructure/server/dummy_server.py a/src/coding_interview/infrastructure/server/dummy_server.py
+index ca6c36f..999b67f 100644
+--- b/src/coding_interview/infrastructure/server/dummy_server.py
++++ a/src/coding_interview/infrastructure/server/dummy_server.py
+@@ -5,6 +5,7 @@
+ from coding_interview.application.usecase.asset.get_asset_usecase import GetAssetUsecase
+ from coding_interview.application.usecase.order.additional_buy_order_usecase import AdditionalBuyOrderUsecase
+ from coding_interview.application.usecase.order.new_order_usecase import NewOrderUsecase
++from coding_interview.application.usecase.order.rebalance_order_usecase import RebalanceOrderUsecase
+ from coding_interview.application.usecase.portfolio.get_latest_portfolio_usecase import GetLatestPortfolioUsecase
+ from coding_interview.application.usecase.portfolio.update_portfolio_usecase import UpdatePortfolioUsecase
+ from coding_interview.infrastructure.repository.account_repository_impl import AccountRepositoryImpl
+@@ -32,6 +33,7 @@ def default(cls) -> "DummyServer":
+         additional_buy_order_usecase = AdditionalBuyOrderUsecase(
+             account_repository, portfolio_repository
+         )
++        rebalance_order_usecase = RebalanceOrderUsecase(account_repository, portfolio_repository)
+ 
+         return cls(
+             asset_controller=AssetController(get_asset_usecase),
+@@ -41,5 +43,6 @@ def default(cls) -> "DummyServer":
+             order_controller=OrderController(
+                 new_order_usecase,
+                 additional_buy_order_usecase,
++                rebalance_order_usecase,
+             ),
+         )
+diff --git b/src/coding_interview/presentation/order_controller.py a/src/coding_interview/presentation/order_controller.py
+index 3f306d1..3131ff0 100644
+--- b/src/coding_interview/presentation/order_controller.py
++++ a/src/coding_interview/presentation/order_controller.py
+@@ -15,6 +15,10 @@
+     NewOrderUsecase,
+     NewOrderUsecaseInput,
+ )
++from coding_interview.application.usecase.order.rebalance_order_usecase import (
++    RebalanceOrderUsecase,
++    RebalanceOrderUsecaseInput,
++)
+ from coding_interview.presentation.exceptions import BadRequestException
+ from coding_interview.presentation.preparation import parse_amount, parse_user_id
+ 
+@@ -31,14 +35,21 @@ class AdditionalOrderRequest:
+     amount: str
+ 
+ 
++@dataclass(frozen=True)
++class RebalanceOrderRequest:
++    userId: str
++
++
+ class OrderController:
+     def __init__(
+         self,
+         new_order_usecase: NewOrderUsecase,
+         additional_buy_order_usecase: AdditionalBuyOrderUsecase,
++        rebalance_order_usecase: RebalanceOrderUsecase,
+     ) -> None:
+         self._new_order_usecase = new_order_usecase
+         self._additional_buy_order_usecase = additional_buy_order_usecase
++        self._rebalance_order_usecase = rebalance_order_usecase
+ 
+     def new_order(self, req: NewOrderRequest) -> None:
+         uid = parse_user_id(req.userId)
+@@ -59,3 +70,10 @@ def additional_order(self, req: AdditionalOrderRequest) -> None:
+             raise BadRequestException("user has no live account")
+         except AmountTooSmallError:
+             raise BadRequestException("amount is too small")
++
++    def rebalance_order(self, req: RebalanceOrderRequest) -> None:
++        uid = parse_user_id(req.userId)
++        try:
++            self._rebalance_order_usecase.run(RebalanceOrderUsecaseInput(uid))
++        except UserNotFoundError:
++            raise BadRequestException("user has no live account")
+diff --git b/tests/test_order_scenario.py a/tests/test_order_scenario.py
+new file mode 100644
+index 0000000..f2d41cd
+--- /dev/null
++++ a/tests/test_order_scenario.py
+@@ -0,0 +1,98 @@
++import uuid
++from decimal import Decimal
++
++import pytest
++
++from coding_interview.infrastructure.server.dummy_server import DummyServer
++from coding_interview.presentation.asset_controller import GetAssetRequest
++from coding_interview.presentation.exceptions import BadRequestException
++from coding_interview.presentation.order_controller import (
++    AdditionalOrderRequest,
++    NewOrderRequest,
++    RebalanceOrderRequest,
++)
++from coding_interview.presentation.portfolio_controller import PortfolioItemDto, UpdateOptimalPortfolioRequest
++
++
++@pytest.fixture()
++def server() -> DummyServer:
++    s = DummyServer.default()
++    s.portfolio_controller.update_optimal_portfolio(
++        UpdateOptimalPortfolioRequest(
++            portfolios=(PortfolioItemDto("Toyopa", "0.40"), PortfolioItemDto("Somy", "0.60"))
++        )
++    )
++    return s
++
++
++def test_investment_operation_scenario(server: DummyServer) -> None:
++    ac = server.asset_controller
++    pc = server.portfolio_controller
++    oc = server.order_controller
++
++    user_id = str(uuid.uuid4())
++
++    # 存在しないユーザーで資産を取得しようとする
++    with pytest.raises(BadRequestException):
++        ac.get_asset(GetAssetRequest(user_id))
++    # BadRequestException が返される
++
++    # 最適ポートフォリオを Toyopa=40%, Somy=60% に更新する
++    pc.update_optimal_portfolio(
++        UpdateOptimalPortfolioRequest(
++            portfolios=(PortfolioItemDto("Toyopa", "0.40"), PortfolioItemDto("Somy", "0.60"))
++        )
++    )
++
++    # 新規注文を 100,000 円で行う
++    oc.new_order(NewOrderRequest(user_id, "100000"))
++
++    asset1 = ac.get_asset(GetAssetRequest(user_id))
++    assert {s.symbol for s in asset1.stocks} == {"Toyopa", "Somy"}
++    total1 = Decimal(asset1.cashAmount) + sum(Decimal(s.amountJpy) for s in asset1.stocks)
++    assert abs(total1 - Decimal("100000")) <= Decimal("2")
++
++    # 現金比率5%に対して現金が 5,000円、最適ポートフォリオに基づき Toyopa の保有額が 38,000 円(40%)、Somy の保有額が 57,000 円(60%) となる
++    # cash = floor0(100000 * 0.05) = 5000, investable = 100000 - 5000 = 95000
++    asset1_toyopa = next(s for s in asset1.stocks if s.symbol == "Toyopa")
++    asset1_somy = next(s for s in asset1.stocks if s.symbol == "Somy")
++    assert Decimal(asset1_toyopa.amountJpy) == Decimal("38000")  # floor0(95000 * 0.40) = 38000
++    assert Decimal(asset1_somy.amountJpy) == Decimal("57000")    # floor0(95000 * 0.60) = 57000
++    assert Decimal(asset1.cashAmount) == Decimal("5000")         # 100000 - 38000 - 57000
++
++    # 追加注文を 100,000 円で行う
++    oc.additional_order(AdditionalOrderRequest(user_id, "100000"))
++
++    # 資産合計が約 200,000 円になる
++    asset2 = ac.get_asset(GetAssetRequest(user_id))
++    total2 = Decimal(asset2.cashAmount) + sum(Decimal(s.amountJpy) for s in asset2.stocks)
++    assert abs(total2 - Decimal("200000")) <= Decimal("4")
++
++    # 現金比率5%に対して現金が 10,000円、最適ポートフォリオに基づき Toyopa の保有額が 76,000 円(40%)、Somy の保有額が 114,000 円(60%) となる
++    # totalAfter = 200000; investable = 200000 - floor0(200000 * 0.05) = 190000
++    asset2_toyopa = next(s for s in asset2.stocks if s.symbol == "Toyopa")
++    asset2_somy = next(s for s in asset2.stocks if s.symbol == "Somy")
++    assert Decimal(asset2_toyopa.amountJpy) == Decimal("76000")  # floor0(190000 * 0.40) = 76000
++    assert Decimal(asset2_somy.amountJpy) == Decimal("114000")   # floor0(190000 * 0.60) = 114000
++    assert Decimal(asset2.cashAmount) == Decimal("10000")        # 200000 - 76000 - 114000
++
++    # 最適ポートフォリオを Toyopa=10%, Somy=90% に変更して、リバランス注文をする
++    pc.update_optimal_portfolio(
++        UpdateOptimalPortfolioRequest(
++            portfolios=(PortfolioItemDto("Toyopa", "0.10"), PortfolioItemDto("Somy", "0.90"))
++        )
++    )
++    oc.rebalance_order(RebalanceOrderRequest(user_id))
++
++    # リバランス後も資産合計がほぼ変わらない
++    asset3 = ac.get_asset(GetAssetRequest(user_id))
++    total3 = Decimal(asset3.cashAmount) + sum(Decimal(s.amountJpy) for s in asset3.stocks)
++    assert abs(total3 - total2) <= Decimal("4")
++
++    # 現金比率5%に対して現金が 10,000円、最適ポートフォリオに基づき Toyopa の保有額が 19,000 円(10%)、Somy の保有額が 171,000 円(90%) となる
++    # total = 200000; investable = 200000 - floor0(200000 * 0.05) = 190000
++    asset3_toyopa = next(s for s in asset3.stocks if s.symbol == "Toyopa")
++    asset3_somy = next(s for s in asset3.stocks if s.symbol == "Somy")
++    assert Decimal(asset3_toyopa.amountJpy) == Decimal("19000")  # floor0(190000 * 0.10) = 19000
++    assert Decimal(asset3_somy.amountJpy) == Decimal("171000")   # floor0(190000 * 0.90) = 171000
++    assert Decimal(asset3.cashAmount) == Decimal("10000")        # 200000 - 19000 - 171000

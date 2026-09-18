@@ -64,16 +64,3 @@ class Account:
         all_stocks = tuple(new_portfolio_stocks + preserved_stocks)
         final_amount = sum(s.amount_jpy for s in all_stocks)
         return Account(cash=total_after - final_amount, stocks=all_stocks)
-
-    def rebalance(self, portfolio: Portfolio) -> "Account":
-        """保有資産を最適ポートフォリオの比率に近づける。"""
-        # XXX this implementation might not be correct
-        investable = self.total()
-        new_stocks: list[Stock] = []
-        used_for_stocks = Decimal(0)
-        for item in portfolio.items:
-            amt = _floor0(investable * item.rate)
-            new_stocks.append(Stock(item.symbol, amt))
-            used_for_stocks += amt
-        final_cash = investable - used_for_stocks
-        return Account(cash=final_cash, stocks=tuple(new_stocks))

@@ -23,13 +23,23 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Verify interview template and patch
+        run: '"${GITHUB_WORKSPACE}/scripts/verify-interview-patch.sh" ruby .'
       - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
         with:
           ruby-version: ${{ matrix.ruby-version }}
           bundler-cache: true
           working-directory: ruby
-      - run: find lib -name '*.rb' -exec ruby -c {} +
-      - run: bundle exec rspec spec/optimal_portfolio_scenario_spec.rb
+      - name: Compile template
+        run: find lib -name '*.rb' -exec ruby -c {} +
+      - name: Test template portfolio scenario
+        run: bundle exec rspec spec/optimal_portfolio_scenario_spec.rb
+      - name: Apply interview patch
+        run: '"${GITHUB_WORKSPACE}/scripts/apply-interview-patch.sh" ruby .'
+      - name: Compile assembled interview
+        run: find lib -name '*.rb' -exec ruby -c {} +
+      - name: Test assembled portfolio scenario
+        run: bundle exec rspec spec/optimal_portfolio_scenario_spec.rb
       - name: Order scenario test should fail at the rebalance assertion
         run: |
           "${GITHUB_WORKSPACE}/.github/scripts/expect-order-scenario-failure.sh" \

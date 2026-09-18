@@ -16,25 +16,18 @@ type AdditionalOrderRequest struct {
 	Amount string
 }
 
-type RebalanceOrderRequest struct {
-	UserId string
-}
-
 type OrderController struct {
 	newOrderUsecase *order.NewOrderUsecase
 	additionalBuyOrderUsecase   *order.AdditionalBuyOrderUsecase
-	rebalanceOrderUsecase       *order.RebalanceOrderUsecase
 }
 
 func NewOrderController(
 	newOrderUsecase *order.NewOrderUsecase,
 	additionalBuyOrderUsecase *order.AdditionalBuyOrderUsecase,
-	rebalanceOrderUsecase *order.RebalanceOrderUsecase,
 ) *OrderController {
 	return &OrderController{
 		newOrderUsecase: newOrderUsecase,
 		additionalBuyOrderUsecase:   additionalBuyOrderUsecase,
-		rebalanceOrderUsecase:       rebalanceOrderUsecase,
 	}
 }
 
@@ -78,22 +71,6 @@ func (c *OrderController) AdditionalOrder(req AdditionalOrderRequest) error {
 		}
 		if errors.Is(err, order.ErrAdditionalBuyAmountTooSmall) {
 			return newBadRequest("amount is too small")
-		}
-		return err
-	}
-	return nil
-}
-
-func (c *OrderController) RebalanceOrder(req RebalanceOrderRequest) error {
-	uid, err := parseUserId(req.UserId)
-	if err != nil {
-		return err
-	}
-
-	err = c.rebalanceOrderUsecase.Run(order.RebalanceOrderUsecaseInput{UserId: uid})
-	if err != nil {
-		if errors.Is(err, order.ErrRebalanceUserNotFound) {
-			return newBadRequest("user has no live account")
 		}
 		return err
 	}

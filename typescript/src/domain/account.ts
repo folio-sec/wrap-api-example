@@ -58,19 +58,4 @@ export class Account {
     const finalCash = totalAfter.minus(finalAmount);
     return new Account(finalCash, allStocks);
   }
-
-  // rebalance は保有資産を最適ポートフォリオの比率に近づける。
-  rebalance(portfolio: Portfolio): Account {
-    // XXX this implementation might not be correct
-    const investable = this.total();
-    const newStocks: Stock[] = [];
-    let usedForStocks = new Decimal(0);
-    for (const item of portfolio.items) {
-      const amt = floor0(investable.times(item.rate));
-      newStocks.push({ symbol: item.symbol, amountJpy: amt });
-      usedForStocks = usedForStocks.plus(amt);
-    }
-    const finalCash = investable.minus(usedForStocks);
-    return new Account(finalCash, newStocks);
-  }
 }

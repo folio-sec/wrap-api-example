@@ -29,8 +29,18 @@ jobs:
           java-version: ${{ matrix.java-version }}
           cache: sbt
       - uses: sbt/setup-sbt@82da71df4e122282484a99a8d70096bc2369dbd8 # v1.5.9
-      - run: sbt compile
-      - run: sbt "testOnly folio.codinginterview.OptimalPortfolioScenario"
+      - name: Verify interview template and patch
+        run: '"${GITHUB_WORKSPACE}/scripts/verify-interview-patch.sh" scala .'
+      - name: Compile template
+        run: sbt compile
+      - name: Test template portfolio scenario
+        run: sbt "testOnly folio.codinginterview.OptimalPortfolioScenario"
+      - name: Apply interview patch
+        run: '"${GITHUB_WORKSPACE}/scripts/apply-interview-patch.sh" scala .'
+      - name: Compile assembled interview
+        run: sbt compile
+      - name: Test assembled portfolio scenario
+        run: sbt "testOnly folio.codinginterview.OptimalPortfolioScenario"
       - name: Order scenario test should fail at the rebalance assertion
         run: |
           "${GITHUB_WORKSPACE}/.github/scripts/expect-order-scenario-failure.sh" \

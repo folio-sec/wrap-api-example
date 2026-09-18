@@ -80,19 +80,4 @@ final class Account
         return new self($finalCash, $allStocks);
     }
 
-    /** リバランス注文で最適ポートフォリオに調整する。 */
-    public function rebalance(Portfolio $portfolio): self
-    {
-        // XXX this implementation might not be correct
-        $investable = $this->total();
-        $stocks = [];
-        $usedForStocks = BigDecimal::zero();
-        foreach ($portfolio->items as $item) {
-            $amt = $investable->mul($item->rate)->setScaleDown(0);
-            $stocks[] = new Stock($item->symbol, $amt);
-            $usedForStocks = $usedForStocks->add($amt);
-        }
-        $finalCash = $investable->sub($usedForStocks);
-        return new self($finalCash, $stocks);
-    }
 }
