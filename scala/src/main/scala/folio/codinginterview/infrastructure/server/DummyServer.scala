@@ -3,7 +3,6 @@ package folio.codinginterview.infrastructure.server
 import folio.codinginterview.application.usecase.asset.GetAssetUsecase
 import folio.codinginterview.application.usecase.order.AdditionalBuyOrderUsecase
 import folio.codinginterview.application.usecase.order.NewOrderUsecase
-import folio.codinginterview.application.usecase.order.RebalanceOrderUsecase
 import folio.codinginterview.application.usecase.portfolio.GetLatestPortfolioUsecase
 import folio.codinginterview.application.usecase.portfolio.UpdatePortfolioUsecase
 import folio.codinginterview.infrastructure.repository.AccountRepositoryImpl
@@ -32,8 +31,6 @@ object DummyServer {
       accountRepository,
       portfolioRepository
     )
-    val rebalanceOrderUsecase = new RebalanceOrderUsecase(accountRepository, portfolioRepository)
-
     val assetController = new AssetController(getAssetUsecase)
     val portfolioController = new PortfolioController(
       getLatestPortfolioUsecase,
@@ -41,8 +38,7 @@ object DummyServer {
     )
     val orderController = new OrderController(
       newOrderUsecase,
-      additionalBuyOrderUsecase,
-      rebalanceOrderUsecase
+      additionalBuyOrderUsecase
     )
 
     new DummyServer(assetController, portfolioController, orderController)

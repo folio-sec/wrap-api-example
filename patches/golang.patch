@@ -1,0 +1,393 @@
+diff --git b/README.md a/README.md
+index 116eef3..30407de 100644
+--- b/README.md
++++ a/README.md
+@@ -16,3 +16,67 @@ go build ./...
+ # テスト実行
+ go test ./...
+ ```
++
++## サービス概要
++
++このアプリケーションは、FOLIOで提供されるロボアドバイザーサービスを模倣したバックエンドAPIサーバーです。
++
++- ロボアドバイザーは、気軽に投資が出来るサービスとなっています
++- お客様は「10万円投資がしたい」となったら、10万円を新規注文で入れていただくと投資が始められます
++- どういった銘柄を運用するかは、お客様ではなく、サービスで管理されたポートフォリオに基づき運用されます
++
++### サービスについて
++
++- **顧客の口座**
++  - 初めて資金を投入することを新規注文と呼び、この注文を入れることで口座が開き資産運用が始まります
++  - 口座の中で資産を管理することになります
++- **顧客口座の資産**
++  - 顧客は現金と銘柄及びその資産額を口座内で保有します
++    - 簡略化のために、顧客は銘柄ごとに保有額（円）を保持します（例: Toyopa銘柄を 500 円分保有する）
++    - 本来は、口座には株数が保持されますが、各銘柄を資産額（円）で直接保有するものとします（市場価格の概念も取り扱いません）
++  - また、総資産の内、5%は常に現金で保持します
++    - 例: 総資産100万円のうち5万円（5%）を現金として保持し、残り95万円分をいくつかの銘柄で保有する
++- **最適ポートフォリオ**
++  - サービスで管理する、保有銘柄を100%配分した組み合わせのことを最適ポートフォリオと呼びます
++    - 例: 合計100%のうち、Toyopa銘柄を40%・Somy銘柄を60%の最適ポートフォリオが現在設定されている
++  - 購入時・売却時・リバランス時には、注文後の資産比率が __現在の最適ポートフォリオ__ に近づける形での調整を実施します
++    - 例: 先のポートフォリオ例の場合、100万円を新規注文した場合、 5万円の現金 + Toyopa銘柄38万円分 + Somy銘柄57万円分 が口座内で管理されます
++    - なお、APIを叩くと __即時__ 売買が成立し資産に反映出来るものとします（受け渡し日などの概念はありません）
++- **各種注文**
++  - __新規注文__
++    - 初めて資金を投入することで、新規に口座開設が行われ資産運用が始まるもの
++  - __追加注文__
++    - 新規注文後に、追加で資金を投入すること
++  - __全売却注文__
++    - 運用中の銘柄を全て売却して現金にすること
++  - __リバランス注文__
++    - 運用されている資産を、サービスで保有する最適ポートフォリオに近づけるよう調整すること
++    - 例:
++      - 新規注文時には、最適ポートフォリオが `Toyopa銘柄30% + Somy銘柄70%` で構成される場合、顧客口座においても同様の資産配分となる
++      - その後にサービス上で最適ポートフォリオが `Toyopa銘柄50% + Somy銘柄50%` に更新される
++      - 更新後に、リバランス注文を入れると、顧客の口座も最新の最適ポートフォリオ通りの内容になる
++        - この場合、Toyopa銘柄が20%分購入され、Somy銘柄が20%分売却される
++
++### 実装について
++
++- Repository はモック実装としてin-memoryにデータを保持していますが、RDBを使う想定で回答してください。
++
++## 確認観点
++
++- 成果を出すこと
++- 成果物についての理解・責任を持つこと
++
++## 課題
++
++以下の課題をAIを用いて、あなた自身の言葉・実装で回答してください。
++
++1. API/アーキテクチャについてAIと協力しながら自分の言葉で説明してください
++    1. 全てのAPIについて説明する必要はなく、パッケージ構成やそれらの役割・関連について説明してください
++2. テストが全て通るようにしてください
++    1. まずは現状のテストを走らせて、どのような内容で落ちているかを説明してください
++    1. また、実装バグがあるため、テストコードは一切変更せず、AIと協力しながら実装を修正してください
++    1. その上で、修正内容について説明をしてください
++3. 全売却APIを実装してください
++    1. 全売却後の現金の取り扱いに関しての方針を決めてください
++    1. ストレッチ: 売却後の現金は銀行APIへ連携
++4. （部分売却APIを実装してください）
+diff --git b/internal/application/usecase/order/rebalance_order_usecase.go a/internal/application/usecase/order/rebalance_order_usecase.go
+new file mode 100644
+index 0000000..aaeaf87
+--- /dev/null
++++ a/internal/application/usecase/order/rebalance_order_usecase.go
+@@ -0,0 +1,48 @@
++package order
++
++import (
++	"errors"
++
++	"folio/codinginterview/internal/application/repository"
++	"folio/codinginterview/internal/domain"
++)
++
++var ErrRebalanceUserNotFound = errors.New("user has no live account")
++
++type RebalanceOrderUsecaseInput struct {
++	UserId domain.UserId
++}
++
++type RebalanceOrderUsecase struct {
++	accountRepo   repository.AccountRepository
++	portfolioRepo repository.PortfolioRepository
++}
++
++func NewRebalanceOrderUsecase(
++	accountRepo repository.AccountRepository,
++	portfolioRepo repository.PortfolioRepository,
++) *RebalanceOrderUsecase {
++	return &RebalanceOrderUsecase{
++		accountRepo:   accountRepo,
++		portfolioRepo: portfolioRepo,
++	}
++}
++
++func (u *RebalanceOrderUsecase) Run(input RebalanceOrderUsecaseInput) error {
++	account, err := u.accountRepo.Find(input.UserId)
++	if err != nil {
++		return err
++	}
++	if account == nil {
++		return ErrRebalanceUserNotFound
++	}
++
++	portfolio, err := u.portfolioRepo.Get()
++	if err != nil {
++		return err
++	}
++
++	updated := account.Rebalance(portfolio)
++
++	return u.accountRepo.Upsert(input.UserId, updated)
++}
+diff --git b/internal/domain/account.go a/internal/domain/account.go
+index 4f50ea8..04d4160 100644
+--- b/internal/domain/account.go
++++ a/internal/domain/account.go
+@@ -85,3 +85,21 @@ func (a Account) AddFunds(amount decimal.Decimal, portfolio Portfolio) Account {
+ 
+ 	return Account{Cash: finalCash, Stocks: allStocks}
+ }
++
++// Rebalance は保有資産を最適ポートフォリオの比率に近づける。
++func (a Account) Rebalance(portfolio Portfolio) Account {
++	// XXX this implementation might not be correct
++	investable := a.Total()
++
++	newStocks := make([]Stock, 0, len(portfolio.Items))
++	usedForStocks := decimal.Zero
++	for _, item := range portfolio.Items {
++		amt := floor0(investable.Mul(item.Rate))
++		newStocks = append(newStocks, Stock{Symbol: item.Symbol, AmountJpy: amt})
++		usedForStocks = usedForStocks.Add(amt)
++	}
++
++	finalCash := investable.Sub(usedForStocks)
++
++	return Account{Cash: finalCash, Stocks: newStocks}
++}
+diff --git b/internal/infrastructure/server/dummy_server.go a/internal/infrastructure/server/dummy_server.go
+index fb0eea3..c62c3b0 100644
+--- b/internal/infrastructure/server/dummy_server.go
++++ a/internal/infrastructure/server/dummy_server.go
+@@ -23,10 +23,11 @@ func NewDefaultDummyServer() *DummyServer {
+ 	updatePortfolioUsecase := portfoliousecase.NewUpdatePortfolioUsecase(portfolioRepo)
+ 	newOrderUsecase := order.NewNewOrderUsecase(accountRepo, portfolioRepo)
+ 	additionalBuyOrderUsecase := order.NewAdditionalBuyOrderUsecase(accountRepo, portfolioRepo)
++	rebalanceOrderUsecase := order.NewRebalanceOrderUsecase(accountRepo, portfolioRepo)
+ 
+ 	assetController := presentation.NewAssetController(getAssetUsecase)
+ 	portfolioController := presentation.NewPortfolioController(getLatestPortfolioUsecase, updatePortfolioUsecase)
+-	orderController := presentation.NewOrderController(newOrderUsecase, additionalBuyOrderUsecase)
++	orderController := presentation.NewOrderController(newOrderUsecase, additionalBuyOrderUsecase, rebalanceOrderUsecase)
+ 
+ 	return &DummyServer{
+ 		AssetController:     assetController,
+diff --git b/internal/presentation/order_controller.go a/internal/presentation/order_controller.go
+index 583d888..9d332e9 100644
+--- b/internal/presentation/order_controller.go
++++ a/internal/presentation/order_controller.go
+@@ -16,18 +16,25 @@ type AdditionalOrderRequest struct {
+ 	Amount string
+ }
+ 
++type RebalanceOrderRequest struct {
++	UserId string
++}
++
+ type OrderController struct {
+ 	newOrderUsecase *order.NewOrderUsecase
+ 	additionalBuyOrderUsecase   *order.AdditionalBuyOrderUsecase
++	rebalanceOrderUsecase       *order.RebalanceOrderUsecase
+ }
+ 
+ func NewOrderController(
+ 	newOrderUsecase *order.NewOrderUsecase,
+ 	additionalBuyOrderUsecase *order.AdditionalBuyOrderUsecase,
++	rebalanceOrderUsecase *order.RebalanceOrderUsecase,
+ ) *OrderController {
+ 	return &OrderController{
+ 		newOrderUsecase: newOrderUsecase,
+ 		additionalBuyOrderUsecase:   additionalBuyOrderUsecase,
++		rebalanceOrderUsecase:       rebalanceOrderUsecase,
+ 	}
+ }
+ 
+@@ -76,3 +83,19 @@ func (c *OrderController) AdditionalOrder(req AdditionalOrderRequest) error {
+ 	}
+ 	return nil
+ }
++
++func (c *OrderController) RebalanceOrder(req RebalanceOrderRequest) error {
++	uid, err := parseUserId(req.UserId)
++	if err != nil {
++		return err
++	}
++
++	err = c.rebalanceOrderUsecase.Run(order.RebalanceOrderUsecaseInput{UserId: uid})
++	if err != nil {
++		if errors.Is(err, order.ErrRebalanceUserNotFound) {
++			return newBadRequest("user has no live account")
++		}
++		return err
++	}
++	return nil
++}
+diff --git b/test/order_scenario_test.go a/test/order_scenario_test.go
+new file mode 100644
+index 0000000..de74563
+--- /dev/null
++++ a/test/order_scenario_test.go
+@@ -0,0 +1,168 @@
++package test
++
++import (
++	"fmt"
++	"testing"
++
++	"folio/codinginterview/internal/infrastructure/server"
++	"folio/codinginterview/internal/presentation"
++
++	"github.com/shopspring/decimal"
++)
++
++func TestOrderScenario(t *testing.T) {
++	s := server.NewDefaultDummyServer()
++	ac := s.AssetController
++	pc := s.PortfolioController
++	oc := s.OrderController
++
++	// initialize optimal portfolio
++	err := pc.UpdateOptimalPortfolio(presentation.UpdateOptimalPortfolioRequest{
++		Portfolios: []presentation.PortfolioItemDto{
++			{Symbol: "Toyopa", Rate: "0.40"},
++			{Symbol: "Somy", Rate: "0.60"},
++		},
++	})
++	if err != nil {
++		t.Fatalf("setup UpdateOptimalPortfolio failed: %v", err)
++	}
++
++	userId := fmt.Sprintf("test-user-%d", 1)
++
++	t.Log("存在しないユーザーで資産を取得しようとする")
++	_, err = ac.GetAsset(presentation.GetAssetRequest{UserId: userId})
++	if _, ok := presentation.IsBadRequestError(err); !ok {
++		t.Fatalf("GetAsset should return BadRequestError for unknown user, got: %v", err)
++	}
++	t.Log("BadRequestException が返される")
++
++	t.Log("最適ポートフォリオを Toyopa=40%, Somy=60% に更新する")
++	err = pc.UpdateOptimalPortfolio(presentation.UpdateOptimalPortfolioRequest{
++		Portfolios: []presentation.PortfolioItemDto{
++			{Symbol: "Toyopa", Rate: "0.40"},
++			{Symbol: "Somy", Rate: "0.60"},
++		},
++	})
++	if err != nil {
++		t.Fatalf("UpdateOptimalPortfolio failed: %v", err)
++	}
++
++	t.Log("新規注文を 100,000 円で行う")
++	err = oc.NewOrder(presentation.NewOrderRequest{UserId: userId, Amount: "100000"})
++	if err != nil {
++		t.Fatalf("NewOrder failed: %v", err)
++	}
++
++	t.Log("現金比率5%に対して現金が 5,000円、最適ポートフォリオに基づき Toyopa の保有額が 38,000 円(40%)、Somy の保有額が 57,000 円(60%) となる")
++	// cash = floor0(100000 * 0.05) = 5000, investable = 100000 - 5000 = 95000
++	asset1, err := ac.GetAsset(presentation.GetAssetRequest{UserId: userId})
++	if err != nil {
++		t.Fatalf("GetAsset failed: %v", err)
++	}
++	symbols1 := make(map[string]struct{})
++	for _, s := range asset1.Stocks {
++		symbols1[s.Symbol] = struct{}{}
++	}
++	if _, ok := symbols1["Toyopa"]; !ok {
++		t.Error("asset1 should contain Toyopa")
++	}
++	if _, ok := symbols1["Somy"]; !ok {
++		t.Error("asset1 should contain Somy")
++	}
++	total1 := mustDecimal(asset1.CashAmount)
++	for _, s := range asset1.Stocks {
++		total1 = total1.Add(mustDecimal(s.AmountJpy))
++	}
++	diff1 := total1.Sub(decimal.NewFromInt(100000)).Abs()
++	if diff1.GreaterThan(decimal.NewFromInt(2)) {
++		t.Errorf("asset1 total should be ~100000, got %s", total1.String())
++	}
++
++	asset1Toyopa := findStock(asset1.Stocks, "Toyopa")
++	asset1Somy := findStock(asset1.Stocks, "Somy")
++	assertDecimalEqual(t, "asset1 Toyopa amount", asset1Toyopa.AmountJpy, "38000") // floor0(95000 * 0.40) = 38000
++	assertDecimalEqual(t, "asset1 Somy amount", asset1Somy.AmountJpy, "57000")     // floor0(95000 * 0.60) = 57000
++	assertDecimalEqual(t, "asset1 cash", asset1.CashAmount, "5000")                // 100000 - 38000 - 57000
++
++	t.Log("追加注文を 100,000 円で行う")
++	err = oc.AdditionalOrder(presentation.AdditionalOrderRequest{UserId: userId, Amount: "100000"})
++	if err != nil {
++		t.Fatalf("AdditionalOrder failed: %v", err)
++	}
++
++	t.Log("資産合計が約 200,000 円になる")
++	asset2, err := ac.GetAsset(presentation.GetAssetRequest{UserId: userId})
++	if err != nil {
++		t.Fatalf("GetAsset failed: %v", err)
++	}
++	total2 := mustDecimal(asset2.CashAmount)
++	for _, s := range asset2.Stocks {
++		total2 = total2.Add(mustDecimal(s.AmountJpy))
++	}
++	diff2 := total2.Sub(decimal.NewFromInt(200000)).Abs()
++	if diff2.GreaterThan(decimal.NewFromInt(4)) {
++		t.Errorf("asset2 total should be ~200000, got %s", total2.String())
++	}
++
++	t.Log("現金比率5%に対して現金が 10,000円、最適ポートフォリオに基づき Toyopa の保有額が 76,000 円(40%)、Somy の保有額が 114,000 円(60%) となる")
++	asset2Toyopa := findStock(asset2.Stocks, "Toyopa")
++	asset2Somy := findStock(asset2.Stocks, "Somy")
++	// totalAfter = 100000 + 100000 = 200000, cash = floor0(200000 * 0.05) = 10000, investable = 190000
++	assertDecimalEqual(t, "asset2 Toyopa amount", asset2Toyopa.AmountJpy, "76000") // floor0(190000 * 0.40) = 76000
++	assertDecimalEqual(t, "asset2 Somy amount", asset2Somy.AmountJpy, "114000")    // floor0(190000 * 0.60) = 114000
++	assertDecimalEqual(t, "asset2 cash", asset2.CashAmount, "10000")               // 200000 - 76000 - 114000
++
++	t.Log("最適ポートフォリオを Toyopa=10%, Somy=90% に変更して、リバランス注文をする")
++	err = pc.UpdateOptimalPortfolio(presentation.UpdateOptimalPortfolioRequest{
++		Portfolios: []presentation.PortfolioItemDto{
++			{Symbol: "Toyopa", Rate: "0.10"},
++			{Symbol: "Somy", Rate: "0.90"},
++		},
++	})
++	if err != nil {
++		t.Fatalf("UpdateOptimalPortfolio failed: %v", err)
++	}
++	err = oc.RebalanceOrder(presentation.RebalanceOrderRequest{UserId: userId})
++	if err != nil {
++		t.Fatalf("RebalanceOrder failed: %v", err)
++	}
++
++	t.Log("リバランス後も資産合計がほぼ変わらない")
++	asset3, err := ac.GetAsset(presentation.GetAssetRequest{UserId: userId})
++	if err != nil {
++		t.Fatalf("GetAsset failed: %v", err)
++	}
++	total3 := mustDecimal(asset3.CashAmount)
++	for _, s := range asset3.Stocks {
++		total3 = total3.Add(mustDecimal(s.AmountJpy))
++	}
++	diff3 := total3.Sub(total2).Abs()
++	if diff3.GreaterThan(decimal.NewFromInt(4)) {
++		t.Errorf("asset3 total should be ~%s (total2), got %s", total2.String(), total3.String())
++	}
++
++	t.Log("現金比率5%に対して現金が 10,000円、最適ポートフォリオに基づき Toyopa の保有額が 19,000 円(10%)、Somy の保有額が 171,000 円(90%) となる")
++	asset3Toyopa := findStock(asset3.Stocks, "Toyopa")
++	asset3Somy := findStock(asset3.Stocks, "Somy")
++	// total = 200000, cash = floor0(200000 * 0.05) = 10000, investable = 190000
++	assertDecimalEqual(t, "asset3 Toyopa amount", asset3Toyopa.AmountJpy, "19000") // floor0(190000 * 0.10) = 19000
++	assertDecimalEqual(t, "asset3 Somy amount", asset3Somy.AmountJpy, "171000")    // floor0(190000 * 0.90) = 171000
++	assertDecimalEqual(t, "asset3 cash", asset3.CashAmount, "10000")               // 200000 - 19000 - 171000
++}
++
++func findStock(stocks []presentation.StockDto, symbol string) presentation.StockDto {
++	for _, s := range stocks {
++		if s.Symbol == symbol {
++			return s
++		}
++	}
++	return presentation.StockDto{}
++}
++
++func mustDecimal(s string) decimal.Decimal {
++	d, err := decimal.NewFromString(s)
++	if err != nil {
++		panic(fmt.Sprintf("invalid decimal %q: %v", s, err))
++	}
++	return d
++}

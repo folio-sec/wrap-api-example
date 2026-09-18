@@ -6,9 +6,6 @@ import folio.codinginterview.application.usecase.order.AdditionalBuyOrderUsecase
 import folio.codinginterview.application.usecase.order.NewOrderUsecase
 import folio.codinginterview.application.usecase.order.NewOrderUsecaseException
 import folio.codinginterview.application.usecase.order.NewOrderUsecaseInput
-import folio.codinginterview.application.usecase.order.RebalanceOrderUsecase
-import folio.codinginterview.application.usecase.order.RebalanceOrderUsecaseException
-import folio.codinginterview.application.usecase.order.RebalanceOrderUsecaseInput
 import folio.codinginterview.presentation.PresentationException.BadRequestException
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
@@ -16,13 +13,11 @@ import scala.concurrent.Future
 object OrderController {
   final case class NewOrderRequest(userId: String, amount: String)
   final case class AdditionalOrderRequest(userId: String, amount: String)
-  final case class RebalanceOrderRequest(userId: String)
 }
 
 final class OrderController(
     newOrderUsecase: NewOrderUsecase,
-    additionalBuyOrderUsecase: AdditionalBuyOrderUsecase,
-    rebalanceOrderUsecase: RebalanceOrderUsecase
+    additionalBuyOrderUsecase: AdditionalBuyOrderUsecase
 )(using ec: ExecutionContext)
     extends PresentationPreparation {
   import OrderController.*
@@ -48,15 +43,6 @@ final class OrderController(
           Future.failed(BadRequestException("user has no live account"))
         case AdditionalBuyOrderUsecaseException.AmountTooSmall =>
           Future.failed(BadRequestException("amount is too small"))
-      }
-    } yield ()
-
-  def rebalanceOrder(req: RebalanceOrderRequest): Future[Unit] =
-    for {
-      uid <- parseUserId(req.userId)
-      _ <- rebalanceOrderUsecase.run(RebalanceOrderUsecaseInput(uid)).recoverWith {
-        case RebalanceOrderUsecaseException.UserNotFound =>
-          Future.failed(BadRequestException("user has no live account"))
       }
     } yield ()
 }

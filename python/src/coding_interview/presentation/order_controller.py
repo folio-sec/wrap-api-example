@@ -15,10 +15,6 @@ from coding_interview.application.usecase.order.new_order_usecase import (
     NewOrderUsecase,
     NewOrderUsecaseInput,
 )
-from coding_interview.application.usecase.order.rebalance_order_usecase import (
-    RebalanceOrderUsecase,
-    RebalanceOrderUsecaseInput,
-)
 from coding_interview.presentation.exceptions import BadRequestException
 from coding_interview.presentation.preparation import parse_amount, parse_user_id
 
@@ -35,21 +31,14 @@ class AdditionalOrderRequest:
     amount: str
 
 
-@dataclass(frozen=True)
-class RebalanceOrderRequest:
-    userId: str
-
-
 class OrderController:
     def __init__(
         self,
         new_order_usecase: NewOrderUsecase,
         additional_buy_order_usecase: AdditionalBuyOrderUsecase,
-        rebalance_order_usecase: RebalanceOrderUsecase,
     ) -> None:
         self._new_order_usecase = new_order_usecase
         self._additional_buy_order_usecase = additional_buy_order_usecase
-        self._rebalance_order_usecase = rebalance_order_usecase
 
     def new_order(self, req: NewOrderRequest) -> None:
         uid = parse_user_id(req.userId)
@@ -70,10 +59,3 @@ class OrderController:
             raise BadRequestException("user has no live account")
         except AmountTooSmallError:
             raise BadRequestException("amount is too small")
-
-    def rebalance_order(self, req: RebalanceOrderRequest) -> None:
-        uid = parse_user_id(req.userId)
-        try:
-            self._rebalance_order_usecase.run(RebalanceOrderUsecaseInput(uid))
-        except UserNotFoundError:
-            raise BadRequestException("user has no live account")

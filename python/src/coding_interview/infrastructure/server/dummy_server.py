@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from coding_interview.application.usecase.asset.get_asset_usecase import GetAssetUsecase
 from coding_interview.application.usecase.order.additional_buy_order_usecase import AdditionalBuyOrderUsecase
 from coding_interview.application.usecase.order.new_order_usecase import NewOrderUsecase
-from coding_interview.application.usecase.order.rebalance_order_usecase import RebalanceOrderUsecase
 from coding_interview.application.usecase.portfolio.get_latest_portfolio_usecase import GetLatestPortfolioUsecase
 from coding_interview.application.usecase.portfolio.update_portfolio_usecase import UpdatePortfolioUsecase
 from coding_interview.infrastructure.repository.account_repository_impl import AccountRepositoryImpl
@@ -33,7 +32,6 @@ class DummyServer:
         additional_buy_order_usecase = AdditionalBuyOrderUsecase(
             account_repository, portfolio_repository
         )
-        rebalance_order_usecase = RebalanceOrderUsecase(account_repository, portfolio_repository)
 
         return cls(
             asset_controller=AssetController(get_asset_usecase),
@@ -43,6 +41,5 @@ class DummyServer:
             order_controller=OrderController(
                 new_order_usecase,
                 additional_buy_order_usecase,
-                rebalance_order_usecase,
             ),
         )

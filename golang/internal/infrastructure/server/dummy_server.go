@@ -23,11 +23,10 @@ func NewDefaultDummyServer() *DummyServer {
 	updatePortfolioUsecase := portfoliousecase.NewUpdatePortfolioUsecase(portfolioRepo)
 	newOrderUsecase := order.NewNewOrderUsecase(accountRepo, portfolioRepo)
 	additionalBuyOrderUsecase := order.NewAdditionalBuyOrderUsecase(accountRepo, portfolioRepo)
-	rebalanceOrderUsecase := order.NewRebalanceOrderUsecase(accountRepo, portfolioRepo)
 
 	assetController := presentation.NewAssetController(getAssetUsecase)
 	portfolioController := presentation.NewPortfolioController(getLatestPortfolioUsecase, updatePortfolioUsecase)
-	orderController := presentation.NewOrderController(newOrderUsecase, additionalBuyOrderUsecase, rebalanceOrderUsecase)
+	orderController := presentation.NewOrderController(newOrderUsecase, additionalBuyOrderUsecase)
 
 	return &DummyServer{
 		AssetController:     assetController,

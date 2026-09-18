@@ -3,7 +3,6 @@ package folio.codinginterview.infrastructure.server;
 import folio.codinginterview.application.usecase.asset.GetAssetUsecase;
 import folio.codinginterview.application.usecase.order.AdditionalBuyOrderUsecase;
 import folio.codinginterview.application.usecase.order.NewOrderUsecase;
-import folio.codinginterview.application.usecase.order.RebalanceOrderUsecase;
 import folio.codinginterview.application.usecase.portfolio.GetLatestPortfolioUsecase;
 import folio.codinginterview.application.usecase.portfolio.UpdatePortfolioUsecase;
 import folio.codinginterview.infrastructure.repository.AccountRepositoryImpl;
@@ -42,11 +41,10 @@ public final class DummyServer {
         var updatePortfolioUsecase = new UpdatePortfolioUsecase(portfolioRepository);
         var newOrderUsecase = new NewOrderUsecase(accountRepository, portfolioRepository);
         var additionalBuyOrderUsecase = new AdditionalBuyOrderUsecase(accountRepository, portfolioRepository);
-        var rebalanceOrderUsecase = new RebalanceOrderUsecase(accountRepository, portfolioRepository);
 
         var assetController = new AssetController(getAssetUsecase);
         var portfolioController = new PortfolioController(getLatestPortfolioUsecase, updatePortfolioUsecase);
-        var orderController = new OrderController(newOrderUsecase, additionalBuyOrderUsecase, rebalanceOrderUsecase);
+        var orderController = new OrderController(newOrderUsecase, additionalBuyOrderUsecase);
 
         return new DummyServer(assetController, portfolioController, orderController);
     }

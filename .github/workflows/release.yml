@@ -7,7 +7,64 @@ permissions:
   contents: read
 
 jobs:
+  golang:
+    name: Verify Go
+    uses: ./.github/workflows/test-go.yml
+    permissions:
+      contents: read
+
+  java17:
+    name: Verify Java 17
+    uses: ./.github/workflows/test-java17.yml
+    permissions:
+      contents: read
+
+  java8:
+    name: Verify Java 8
+    uses: ./.github/workflows/test-java8.yml
+    permissions:
+      contents: read
+
+  php:
+    name: Verify PHP
+    uses: ./.github/workflows/test-php.yml
+    permissions:
+      contents: read
+
+  python:
+    name: Verify Python
+    uses: ./.github/workflows/test-python.yml
+    permissions:
+      contents: read
+
+  ruby:
+    name: Verify Ruby
+    uses: ./.github/workflows/test-ruby.yml
+    permissions:
+      contents: read
+
+  scala:
+    name: Verify Scala
+    uses: ./.github/workflows/test-scala.yml
+    permissions:
+      contents: read
+
+  typescript:
+    name: Verify TypeScript
+    uses: ./.github/workflows/test-typescript.yml
+    permissions:
+      contents: read
+
   package:
+    needs:
+      - golang
+      - java17
+      - java8
+      - php
+      - python
+      - ruby
+      - scala
+      - typescript
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -17,20 +74,31 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Create zip archives
-        run: |
-          for dir in golang java17 java8 php python ruby scala typescript; do
-            zip -r "${dir}.zip" "${dir}/"
-          done
+      - name: Build template, patch, and assembled assets
+        run: ./scripts/build-release-assets.sh release-assets
         shell: bash
 
       - name: Create release and upload assets
         run: |
           TAG="release-$(date +%Y%m%d-%H%M%S)"
+          NOTES_FILE="$(mktemp)"
+          {
+            echo "Auto-generated interview assets."
+            echo
+            echo "- \`<language>.zip\`: assembled archive for the existing interview flow"
+            echo "- \`<language>-template.zip\`: template for pre-interview setup"
+            echo "- \`<language>.patch\`: interview content applied at interview start"
+            echo
+            echo "Apply a patch from the extracted language directory:"
+            echo
+            echo "\`\`\`bash"
+            echo "patch_file=\"\$(mktemp)\" && curl -fsSL \"https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/<language>.patch\" -o \"\${patch_file}\" && git apply --no-index \"\${patch_file}\" && rm \"\${patch_file}\""
+            echo "\`\`\`"
+          } > "$NOTES_FILE"
           gh release create "$TAG" \
             --title "Implementations $TAG" \
-            --notes "Auto-generated release of implementation samples" \
-            golang.zip java17.zip java8.zip php.zip python.zip ruby.zip scala.zip typescript.zip
+            --notes-file "$NOTES_FILE" \
+            release-assets/*
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash

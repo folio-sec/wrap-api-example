@@ -38,37 +38,57 @@ jobs:
             shared: &shared
               - '.github/workflows/ci.yml'
               - '.github/scripts/expect-order-scenario-failure.sh'
+              - 'scripts/**'
+              - 'interview/shared/**'
             golang:
               - *shared
               - '.github/workflows/test-go.yml'
+              - 'interview/manifests/golang.txt'
+              - 'patches/golang.patch'
+              - 'golang/README.md'
               - 'golang/**.go'
               - 'golang/go.mod'
               - 'golang/go.sum'
             java17:
               - *shared
               - '.github/workflows/test-java17.yml'
+              - 'interview/manifests/java17.txt'
+              - 'patches/java17.patch'
+              - 'java17/README.md'
               - 'java17/src/**'
               - 'java17/pom.xml'
             java8:
               - *shared
               - '.github/workflows/test-java8.yml'
+              - 'interview/manifests/java8.txt'
+              - 'patches/java8.patch'
+              - 'java8/README.md'
               - 'java8/src/**'
               - 'java8/pom.xml'
             php:
               - *shared
               - '.github/workflows/test-php.yml'
+              - 'interview/manifests/php.txt'
+              - 'patches/php.patch'
+              - 'php/README.md'
               - 'php/src/**'
               - 'php/tests/**'
               - 'php/composer.json'
             python:
               - *shared
               - '.github/workflows/test-python.yml'
+              - 'interview/manifests/python.txt'
+              - 'patches/python.patch'
+              - 'python/README.md'
               - 'python/src/**'
               - 'python/tests/**'
               - 'python/pyproject.toml'
             ruby:
               - *shared
               - '.github/workflows/test-ruby.yml'
+              - 'interview/manifests/ruby.txt'
+              - 'patches/ruby.patch'
+              - 'ruby/README.md'
               - 'ruby/lib/**'
               - 'ruby/spec/**'
               - 'ruby/Gemfile'
@@ -76,12 +96,18 @@ jobs:
             scala:
               - *shared
               - '.github/workflows/test-scala.yml'
+              - 'interview/manifests/scala.txt'
+              - 'patches/scala.patch'
+              - 'scala/README.md'
               - 'scala/src/**'
               - 'scala/build.sbt'
               - 'scala/project/**'
             typescript:
               - *shared
               - '.github/workflows/test-typescript.yml'
+              - 'interview/manifests/typescript.txt'
+              - 'patches/typescript.patch'
+              - 'typescript/README.md'
               - 'typescript/src/**'
               - 'typescript/tests/**'
               - 'typescript/package.json'

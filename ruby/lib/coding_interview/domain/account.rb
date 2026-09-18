@@ -56,21 +56,6 @@ module CodingInterview
         Account.new(final_cash, all_stocks)
       end
 
-      # rebalance は保有資産を最適ポートフォリオの比率に近づける。
-      def rebalance(portfolio)
-        # XXX this implementation might not be correct
-        investable = total
-
-        used_for_stocks = BigDecimal("0")
-        new_stocks = portfolio.items.map do |item|
-          amt = Account.floor0(investable * item.rate)
-          used_for_stocks += amt
-          Stock.new(item.symbol, amt)
-        end
-
-        final_cash = investable - used_for_stocks
-        Account.new(final_cash, new_stocks)
-      end
     end
   end
 end

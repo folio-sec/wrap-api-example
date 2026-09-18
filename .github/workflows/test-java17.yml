@@ -28,7 +28,14 @@ jobs:
           distribution: temurin
           java-version: ${{ matrix.java-version }}
           cache: maven
-      - run: ./mvnw test -q -Dtest=OptimalPortfolioScenarioTest
+      - name: Verify interview template and patch
+        run: '"${GITHUB_WORKSPACE}/scripts/verify-interview-patch.sh" java17 .'
+      - name: Test template portfolio scenario
+        run: ./mvnw test -q -Dtest=OptimalPortfolioScenarioTest
+      - name: Apply interview patch
+        run: '"${GITHUB_WORKSPACE}/scripts/apply-interview-patch.sh" java17 .'
+      - name: Test assembled portfolio scenario
+        run: ./mvnw test -q -Dtest=OptimalPortfolioScenarioTest
       - name: Order scenario test should fail at the rebalance assertion
         run: |
           "${GITHUB_WORKSPACE}/.github/scripts/expect-order-scenario-failure.sh" \

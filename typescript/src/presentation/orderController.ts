@@ -8,10 +8,6 @@ import {
   NewOrderUsecase,
   NewOrderUserAlreadyExistsException,
 } from "../application/usecase/order/newOrderUsecase";
-import {
-  RebalanceOrderUsecase,
-  RebalanceUserNotFoundException,
-} from "../application/usecase/order/rebalanceOrderUsecase";
 import { BadRequestException } from "./presentationException";
 import { parseAmount, parseUserId } from "./presentationPreparation";
 
@@ -25,15 +21,10 @@ export interface AdditionalOrderRequest {
   amount: string;
 }
 
-export interface RebalanceOrderRequest {
-  userId: string;
-}
-
 export class OrderController {
   constructor(
     private readonly newOrderUsecase: NewOrderUsecase,
     private readonly additionalBuyOrderUsecase: AdditionalBuyOrderUsecase,
-    private readonly rebalanceOrderUsecase: RebalanceOrderUsecase,
   ) {}
 
   async newOrder(req: NewOrderRequest): Promise<void> {
@@ -63,18 +54,6 @@ export class OrderController {
       }
       if (e instanceof AdditionalBuyAmountTooSmallException) {
         throw new BadRequestException("amount is too small");
-      }
-      throw e;
-    }
-  }
-
-  async rebalanceOrder(req: RebalanceOrderRequest): Promise<void> {
-    const uid = parseUserId(req.userId);
-    try {
-      await this.rebalanceOrderUsecase.run({ userId: uid });
-    } catch (e) {
-      if (e instanceof RebalanceUserNotFoundException) {
-        throw new BadRequestException("user has no live account");
       }
       throw e;
     }
