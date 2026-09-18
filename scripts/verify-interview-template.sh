@@ -79,15 +79,15 @@ if [ -e "${template_directory}/${rebalance_usecase}" ]; then
   exit 1
 fi
 
-if rg -n -i \
-  --glob '!**/target/**' \
-  --glob '!**/node_modules/**' \
-  --glob '!**/vendor/**' \
-  --glob '!**/dist/**' \
-  --glob '!**/.venv/**' \
-  --glob '!**/venv/**' \
-  --glob '!**/__pycache__/**' \
-  --glob '!**/*.egg-info/**' \
+if grep -R -n -i -E \
+  --exclude-dir=target \
+  --exclude-dir=node_modules \
+  --exclude-dir=vendor \
+  --exclude-dir=dist \
+  --exclude-dir=.venv \
+  --exclude-dir=venv \
+  --exclude-dir=__pycache__ \
+  --exclude-dir='*.egg-info' \
   'rebalance|リバランス' "$template_directory"; then
   echo "template contains rebalance-related content" >&2
   exit 1

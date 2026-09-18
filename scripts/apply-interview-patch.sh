@@ -34,5 +34,18 @@ if [ ! -f "$patch_file" ]; then
   exit 1
 fi
 
-git -C "$target_directory" apply --no-index --check "$patch_file"
-git -C "$target_directory" apply --no-index "$patch_file"
+target_directory="$(cd "$target_directory" && pwd)"
+
+case "${target_directory}/" in
+  "${repo_root}/"*)
+    relative_target="${target_directory#"${repo_root}"/}"
+    git -C "$repo_root" apply --no-index --check \
+      --directory="$relative_target" "$patch_file"
+    git -C "$repo_root" apply --no-index \
+      --directory="$relative_target" "$patch_file"
+    ;;
+  *)
+    git -C "$target_directory" apply --no-index --check "$patch_file"
+    git -C "$target_directory" apply --no-index "$patch_file"
+    ;;
+esac
