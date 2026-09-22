@@ -57,10 +57,17 @@ cp -R "${assembled_directory}/." "$worktree/"
 
 generated_patch="${tmp_directory}/${language}.patch"
 git -C "$worktree" add --intent-to-add .
-git -C "$worktree" diff --binary -- . > "$generated_patch"
+# --no-renames keeps every change as a plain add/delete/modify so that the
+# manifest check below sees each touched path in a `diff --git` header.
+git -C "$worktree" diff --binary --no-renames -- . > "$generated_patch"
 
 if [ ! -s "$generated_patch" ]; then
   echo "generated patch is empty" >&2
+  exit 1
+fi
+
+if grep -q -E '^(rename|copy) (from|to) ' "$generated_patch"; then
+  echo "generated patch contains rename/copy entries: $generated_patch" >&2
   exit 1
 fi
 

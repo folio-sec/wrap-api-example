@@ -69,6 +69,14 @@ done
 tmp_directory="$(mktemp -d)"
 trap 'rm -rf "$tmp_directory"' EXIT
 
+# The manifest comparison below only sees the destination path of each
+# `diff --git` header, so a rename from an undeclared source would be able
+# to remove a file outside the manifest. Reject rename/copy entries outright.
+if grep -q -E '^(rename|copy) (from|to) ' "$patch_file"; then
+  echo "patch contains rename/copy entries, which are not allowed: $patch_file" >&2
+  exit 1
+fi
+
 awk '/^diff --git [ab]\// { path = $4; sub(/^[ab]\//, "", path); print path }' \
   "$patch_file" | LC_ALL=C sort -u > "${tmp_directory}/actual-paths.txt"
 LC_ALL=C sort -u "$manifest_file" > "${tmp_directory}/expected-paths.txt"
