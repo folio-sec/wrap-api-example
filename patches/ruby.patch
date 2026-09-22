@@ -1,7 +1,7 @@
-diff --git b/README.md a/README.md
+diff --git a/README.md b/README.md
 index 8e16ff1..10f817c 100644
---- b/README.md
-+++ a/README.md
+--- a/README.md
++++ b/README.md
 @@ -17,3 +17,67 @@ bundle install
  # test
  bundle exec rspec
@@ -70,11 +70,11 @@ index 8e16ff1..10f817c 100644
 +    1. 全売却後の現金の取り扱いに関しての方針を決めてください
 +    1. ストレッチ: 売却後の現金は銀行APIへ連携
 +4. （部分売却APIを実装してください）
-diff --git b/lib/coding_interview/application/usecase/order/rebalance_order_usecase.rb a/lib/coding_interview/application/usecase/order/rebalance_order_usecase.rb
+diff --git a/lib/coding_interview/application/usecase/order/rebalance_order_usecase.rb b/lib/coding_interview/application/usecase/order/rebalance_order_usecase.rb
 new file mode 100644
 index 0000000..18931e8
 --- /dev/null
-+++ a/lib/coding_interview/application/usecase/order/rebalance_order_usecase.rb
++++ b/lib/coding_interview/application/usecase/order/rebalance_order_usecase.rb
 @@ -0,0 +1,28 @@
 +module CodingInterview
 +  module Application
@@ -104,10 +104,10 @@ index 0000000..18931e8
 +    end
 +  end
 +end
-diff --git b/lib/coding_interview/domain/account.rb a/lib/coding_interview/domain/account.rb
+diff --git a/lib/coding_interview/domain/account.rb b/lib/coding_interview/domain/account.rb
 index 41fff55..9b4423f 100644
---- b/lib/coding_interview/domain/account.rb
-+++ a/lib/coding_interview/domain/account.rb
+--- a/lib/coding_interview/domain/account.rb
++++ b/lib/coding_interview/domain/account.rb
 @@ -56,6 +56,21 @@ def add_funds(amount, portfolio)
          Account.new(final_cash, all_stocks)
        end
@@ -130,10 +130,10 @@ index 41fff55..9b4423f 100644
      end
    end
  end
-diff --git b/lib/coding_interview/infrastructure/server/dummy_server.rb a/lib/coding_interview/infrastructure/server/dummy_server.rb
+diff --git a/lib/coding_interview/infrastructure/server/dummy_server.rb b/lib/coding_interview/infrastructure/server/dummy_server.rb
 index 0eb2bab..224875f 100644
---- b/lib/coding_interview/infrastructure/server/dummy_server.rb
-+++ a/lib/coding_interview/infrastructure/server/dummy_server.rb
+--- a/lib/coding_interview/infrastructure/server/dummy_server.rb
++++ b/lib/coding_interview/infrastructure/server/dummy_server.rb
 @@ -5,6 +5,7 @@
  require_relative "../../application/usecase/portfolio/update_portfolio_usecase"
  require_relative "../../application/usecase/order/new_order_usecase"
@@ -155,10 +155,10 @@ index 0eb2bab..224875f 100644
  
            new(asset_controller, portfolio_controller, order_controller)
          end
-diff --git b/lib/coding_interview/presentation/order_controller.rb a/lib/coding_interview/presentation/order_controller.rb
+diff --git a/lib/coding_interview/presentation/order_controller.rb b/lib/coding_interview/presentation/order_controller.rb
 index e637d73..5bf71a9 100644
---- b/lib/coding_interview/presentation/order_controller.rb
-+++ a/lib/coding_interview/presentation/order_controller.rb
+--- a/lib/coding_interview/presentation/order_controller.rb
++++ b/lib/coding_interview/presentation/order_controller.rb
 @@ -2,18 +2,21 @@
  require_relative "presentation_preparation"
  require_relative "../application/usecase/order/new_order_usecase"
@@ -197,11 +197,11 @@ index e637d73..5bf71a9 100644
      end
    end
  end
-diff --git b/spec/order_scenario_spec.rb a/spec/order_scenario_spec.rb
+diff --git a/spec/order_scenario_spec.rb b/spec/order_scenario_spec.rb
 new file mode 100644
 index 0000000..0ea2296
 --- /dev/null
-+++ a/spec/order_scenario_spec.rb
++++ b/spec/order_scenario_spec.rb
 @@ -0,0 +1,92 @@
 +require "bigdecimal"
 +require "securerandom"

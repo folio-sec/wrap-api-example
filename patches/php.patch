@@ -1,7 +1,7 @@
-diff --git b/README.md a/README.md
+diff --git a/README.md b/README.md
 index 815ecc2..d38e732 100644
---- b/README.md
-+++ a/README.md
+--- a/README.md
++++ b/README.md
 @@ -32,3 +32,67 @@ composer install
  # test
  vendor\bin\phpunit
@@ -70,11 +70,11 @@ index 815ecc2..d38e732 100644
 +    1. 全売却後の現金の取り扱いに関しての方針を決めてください
 +    1. ストレッチ: 売却後の現金は銀行APIへ連携
 +4. （部分売却APIを実装してください）
-diff --git b/src/CodingInterview/Application/Usecase/Order/RebalanceOrderUsecase.php a/src/CodingInterview/Application/Usecase/Order/RebalanceOrderUsecase.php
+diff --git a/src/CodingInterview/Application/Usecase/Order/RebalanceOrderUsecase.php b/src/CodingInterview/Application/Usecase/Order/RebalanceOrderUsecase.php
 new file mode 100644
 index 0000000..1699bc5
 --- /dev/null
-+++ a/src/CodingInterview/Application/Usecase/Order/RebalanceOrderUsecase.php
++++ b/src/CodingInterview/Application/Usecase/Order/RebalanceOrderUsecase.php
 @@ -0,0 +1,38 @@
 +<?php
 +
@@ -114,10 +114,10 @@ index 0000000..1699bc5
 +        $this->accountRepository->upsert($input->userId, $updated);
 +    }
 +}
-diff --git b/src/CodingInterview/Domain/Account.php a/src/CodingInterview/Domain/Account.php
+diff --git a/src/CodingInterview/Domain/Account.php b/src/CodingInterview/Domain/Account.php
 index a80c184..23ff9f5 100644
---- b/src/CodingInterview/Domain/Account.php
-+++ a/src/CodingInterview/Domain/Account.php
+--- a/src/CodingInterview/Domain/Account.php
++++ b/src/CodingInterview/Domain/Account.php
 @@ -80,4 +80,19 @@ final class Account
          return new self($finalCash, $allStocks);
      }
@@ -138,10 +138,10 @@ index a80c184..23ff9f5 100644
 +        return new self($finalCash, $stocks);
 +    }
  }
-diff --git b/src/CodingInterview/Infrastructure/Server/DummyServer.php a/src/CodingInterview/Infrastructure/Server/DummyServer.php
+diff --git a/src/CodingInterview/Infrastructure/Server/DummyServer.php b/src/CodingInterview/Infrastructure/Server/DummyServer.php
 index e79a93a..38700cc 100644
---- b/src/CodingInterview/Infrastructure/Server/DummyServer.php
-+++ a/src/CodingInterview/Infrastructure/Server/DummyServer.php
+--- a/src/CodingInterview/Infrastructure/Server/DummyServer.php
++++ b/src/CodingInterview/Infrastructure/Server/DummyServer.php
 @@ -7,6 +7,7 @@ namespace Folio\CodingInterview\Infrastructure\Server;
  use Folio\CodingInterview\Application\Usecase\Asset\GetAssetUsecase;
  use Folio\CodingInterview\Application\Usecase\Order\AdditionalBuyOrderUsecase;
@@ -164,10 +164,10 @@ index e79a93a..38700cc 100644
          );
      }
  }
-diff --git b/src/CodingInterview/Presentation/OrderController.php a/src/CodingInterview/Presentation/OrderController.php
+diff --git a/src/CodingInterview/Presentation/OrderController.php b/src/CodingInterview/Presentation/OrderController.php
 index 6bbfc31..051050d 100644
---- b/src/CodingInterview/Presentation/OrderController.php
-+++ a/src/CodingInterview/Presentation/OrderController.php
+--- a/src/CodingInterview/Presentation/OrderController.php
++++ b/src/CodingInterview/Presentation/OrderController.php
 @@ -12,6 +12,9 @@ use Folio\CodingInterview\Application\Usecase\Order\NewOrderAmountTooSmallExcept
  use Folio\CodingInterview\Application\Usecase\Order\NewOrderUserAlreadyExistsException;
  use Folio\CodingInterview\Application\Usecase\Order\NewOrderUsecase;
@@ -212,11 +212,11 @@ index 6bbfc31..051050d 100644
 +        }
 +    }
  }
-diff --git b/tests/OrderScenarioTest.php a/tests/OrderScenarioTest.php
+diff --git a/tests/OrderScenarioTest.php b/tests/OrderScenarioTest.php
 new file mode 100644
 index 0000000..ce7f18b
 --- /dev/null
-+++ a/tests/OrderScenarioTest.php
++++ b/tests/OrderScenarioTest.php
 @@ -0,0 +1,121 @@
 +<?php
 +
