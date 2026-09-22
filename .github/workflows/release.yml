@@ -85,17 +85,26 @@ jobs:
           {
             echo "Auto-generated interview assets."
             echo
-            echo "- \`<language>.zip\`: assembled archive for the existing interview flow"
-            echo "- \`<language>-template.zip\`: template for pre-interview setup"
-            echo "- \`<language>.patch\`: interview content applied at interview start"
+            echo "- \`<language>-template.zip\`: 面接前に事前共有されるテンプレートファイル"
+            echo "- \`<language>.patch\`: 面接時に適用されるパッチファイル"
+            echo "- \`<language>.zip\`: テンプレートにパッチが適用されたファイル（パッチ適用が難しい場合に利用）"
             echo
-            echo "Apply a patch from the extracted language directory (the directory that contains README.md):"
+            echo "パッチの適用方法について:"
             echo
             echo "\`\`\`bash"
             echo "curl -fsSL \"https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/<language>.patch\" | patch -p1"
             echo "\`\`\`"
             echo
-            echo "\`patch -p1\` always resolves paths against the current directory. \`git apply\` would also work, but only when the language directory is the root of a git repository (or not inside one); run from a subdirectory of a repository it silently skips every file."
+            echo "Windows PowerShell環境では、以下のコマンドを利用:"
+            echo
+            echo '```powershell'
+            echo "curl.exe -fsSL \"https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/<language>.patch\" -o interview.patch"
+            echo 'git apply interview.patch'
+            echo 'Remove-Item interview.patch'
+            echo '```'
+            echo
+            echo "patch適用が難しい場合には、 \`<language>.zip\` を利用すること"
+            echo
           } > "$NOTES_FILE"
           gh release create "$TAG" \
             --title "Implementations $TAG" \

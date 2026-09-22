@@ -1,28 +1,17 @@
 # Wrap API Example
 
-## 面接課題の雛形と patch
+## files types
 
-各言語ディレクトリ(`golang/`, `java17/`, ...)は面接前に候補者へ配布できる **雛形** で、ビルド・テスト手順と PortfolioScenario までを含みます。
-面接課題そのもの(サービス概要・課題文・リバランス実装・OrderScenario)は言語別の patch として管理し、面接開始時に雛形へ適用します。
-
-| パス | 役割 |
+| Path | Role |
 | --- | --- |
-| `<language>/` | 雛形。CI ではこの状態と patch 適用後の両方を検証する |
-| `patches/<language>.patch` | 雛形に適用すると従来の面接課題が完全に復元される patch |
-| `interview/manifests/<language>.txt` | patch が変更してよいファイルの一覧。範囲外に触れる patch は CI が拒否する |
-| `interview/shared/README.challenge.md` | 全言語共通の課題文。patch 適用後の README 末尾と一致していなければ CI が失敗する |
+| `<language>/` | template |
+| `patches/<language>.patch` | interview patch |
+| `interview/manifests/<language>.txt` | patch editable files |
+| `interview/shared/README.challenge.md` | shared patch |
 
-| スクリプト | 用途 |
-| --- | --- |
-| `scripts/verify-interview-template.sh <language> [dir]` | 雛形に課題の内容が混入していないことを確認する |
-| `scripts/verify-interview-patch.sh <language> [dir]` | patch が manifest の範囲内で、適用すると課題が復元されることを確認する |
-| `scripts/apply-interview-patch.sh <language> [dir]` | 雛形に patch を適用する(CI と Release で使用) |
-| `scripts/generate-interview-patch.sh <language> [assembled-dir] [output]` | patch を生成する。`assembled-dir` を省略すると現在の patch と `README.challenge.md` から再生成する |
-| `scripts/build-release-assets.sh <output-dir>` | Release 用の zip・patch・checksum を生成する |
+## Development
 
-### patch の更新手順
-
-課題文(`interview/shared/README.challenge.md`)や雛形側のファイルを編集したときは、コンテキスト行が変わるため patch を再生成してコミットします。
+When changing `interview/shared/README.challenge.md` or template files.
 
 ```sh
 for language in golang java17 java8 php python ruby scala typescript; do
@@ -30,34 +19,42 @@ for language in golang java17 java8 php python ruby scala typescript; do
 done
 ```
 
-課題側のコード(リバランス実装・OrderScenario など)を変更するときは、雛形をコピーして patch を適用した作業ディレクトリを編集し、そこから patch を生成します。
-新しいファイルを追加した場合は `interview/manifests/<language>.txt` にも追記してください。
+When changing interview implementations, do followings
 
 ```sh
 work="$(mktemp -d)/golang"
 cp -R golang "$work"
 ./scripts/apply-interview-patch.sh golang "$work"
-# "$work" を編集する
+# edit "$work"
 ./scripts/generate-interview-patch.sh golang "$work"
+# when adding new file, edit interview/manifests/<language>.txt
 ```
-
-### 候補者側での patch の適用
-
-Release の `<language>.patch` は、展開した言語ディレクトリ(README.md があるディレクトリ)で `patch -p1` を使って適用します。
-
-```sh
-curl -fsSL "https://github.com/folio-sec/wrap-api-example/releases/download/<tag>/<language>.patch" | patch -p1
-```
-
-`git apply` でも適用できますが、言語ディレクトリより上の階層で `git init` している場合、
-`git apply` はパスをリポジトリルート基準で解釈し、カレントディレクトリ外のファイルを exit 0 のまま黙ってスキップします。
-`patch -p1` は常にカレントディレクトリ基準で動作するため、こちらを案内しています。
 
 ## Release
 
 Kick the [release action](https://github.com/folio-sec/wrap-api-example/actions/workflows/release.yml) manually, then release.
 
-The workflow runs every language workflow first and then publishes, per language, `<language>-template.zip`, `<language>.patch`, and the assembled `<language>.zip`, together with `SHA256SUMS`.
+- `<language>-template.zip`
+- `<language>.patch`
+- `<language>.zip`
+
+## On Interview
+
+- macOS / Linux / etc
+
+```sh
+curl -fsSL "https://github.com/folio-sec/wrap-api-example/releases/download/<tag>/<language>.patch" | patch -p1
+```
+
+Windows(PowerShell):
+
+```powershell
+curl.exe -fsSL "https://github.com/folio-sec/wrap-api-example/releases/download/<tag>/<language>.patch" -o interview.patch
+git apply interview.patch
+Remove-Item interview.patch
+```
+
+Alternative, use full zip.
 
 ### DCO Sign-Off Methods
 
