@@ -89,8 +89,8 @@ fi
 mkdir "${tmp_directory}/assembled"
 cp -R "${template_directory}/." "${tmp_directory}/assembled/"
 
-git -C "${tmp_directory}/assembled" apply --no-index --check "$patch_file"
-git -C "${tmp_directory}/assembled" apply --no-index "$patch_file"
+git -C "${tmp_directory}/assembled" apply --check "$patch_file"
+git -C "${tmp_directory}/assembled" apply "$patch_file"
 
 if [ ! -f "${tmp_directory}/assembled/${order_scenario}" ]; then
   echo "patch did not restore OrderScenario: $order_scenario" >&2

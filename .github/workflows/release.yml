@@ -89,11 +89,13 @@ jobs:
             echo "- \`<language>-template.zip\`: template for pre-interview setup"
             echo "- \`<language>.patch\`: interview content applied at interview start"
             echo
-            echo "Apply a patch from the extracted language directory:"
+            echo "Apply a patch from the extracted language directory (the directory that contains README.md):"
             echo
             echo "\`\`\`bash"
-            echo "patch_file=\"\$(mktemp)\" && curl -fsSL \"https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/<language>.patch\" -o \"\${patch_file}\" && git apply --no-index \"\${patch_file}\" && rm \"\${patch_file}\""
+            echo "curl -fsSL \"https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/<language>.patch\" | patch -p1"
             echo "\`\`\`"
+            echo
+            echo "\`patch -p1\` always resolves paths against the current directory. \`git apply\` would also work, but only when the language directory is the root of a git repository (or not inside one); run from a subdirectory of a repository it silently skips every file."
           } > "$NOTES_FILE"
           gh release create "$TAG" \
             --title "Implementations $TAG" \

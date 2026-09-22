@@ -83,8 +83,8 @@ fi
 verification_directory="${tmp_directory}/verification"
 mkdir "$verification_directory"
 cp -R "${template_directory}/." "$verification_directory/"
-git -C "$verification_directory" apply --no-index --check "$generated_patch"
-git -C "$verification_directory" apply --no-index "$generated_patch"
+git -C "$verification_directory" apply --check "$generated_patch"
+git -C "$verification_directory" apply "$generated_patch"
 
 if ! diff -qr -x .git "$assembled_directory" "$verification_directory"; then
   echo "generated patch does not reconstruct the assembled directory" >&2

@@ -36,16 +36,22 @@ fi
 
 target_directory="$(cd "$target_directory" && pwd)"
 
+# Inside a git repository, `git apply` resolves patch paths against the
+# repository root rather than the current directory, and silently skips
+# ("Skipped patch ...", exit 0) every path that falls outside the current
+# directory. Running from <repo>/golang would therefore apply nothing.
+# When the target lives inside this repository, apply from the root with
+# --directory so the paths are prefixed correctly.
 case "${target_directory}/" in
   "${repo_root}/"*)
     relative_target="${target_directory#"${repo_root}"/}"
-    git -C "$repo_root" apply --no-index --check \
+    git -C "$repo_root" apply --check \
       --directory="$relative_target" "$patch_file"
-    git -C "$repo_root" apply --no-index \
+    git -C "$repo_root" apply \
       --directory="$relative_target" "$patch_file"
     ;;
   *)
-    git -C "$target_directory" apply --no-index --check "$patch_file"
-    git -C "$target_directory" apply --no-index "$patch_file"
+    git -C "$target_directory" apply --check "$patch_file"
+    git -C "$target_directory" apply "$patch_file"
     ;;
 esac
