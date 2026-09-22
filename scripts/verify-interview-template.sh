@@ -80,6 +80,7 @@ if [ -e "${template_directory}/${rebalance_usecase}" ]; then
 fi
 
 if grep -R -n -i -E \
+  --exclude-dir=.git \
   --exclude-dir=target \
   --exclude-dir=node_modules \
   --exclude-dir=vendor \
