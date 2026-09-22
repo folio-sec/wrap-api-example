@@ -3,16 +3,23 @@
 set -euo pipefail
 
 usage() {
-  echo "usage: $0 <language> <assembled-directory> [output-patch]" >&2
+  cat >&2 <<'USAGE'
+usage: generate-interview-patch.sh <language> [assembled-directory] [output-patch]
+
+Without <assembled-directory>, the current patches/<language>.patch is
+applied to the template and README.md is rebuilt from the template README
+and interview/shared/README.challenge.md. Use this to refresh the patch
+after editing the shared challenge text or the template.
+USAGE
   exit 2
 }
 
-if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
+if [ "$#" -lt 1 ] || [ "$#" -gt 3 ]; then
   usage
 fi
 
 language="$1"
-assembled_directory="$2"
+assembled_directory="${2:-}"
 case "$language" in
   golang | java8 | java17 | php | python | ruby | scala | typescript) ;;
   *)
@@ -26,7 +33,7 @@ template_directory="${repo_root}/${language}"
 manifest_file="${repo_root}/interview/manifests/${language}.txt"
 output_patch="${3:-${repo_root}/patches/${language}.patch}"
 
-if [ ! -d "$assembled_directory" ]; then
+if [ -n "$assembled_directory" ] && [ ! -d "$assembled_directory" ]; then
   echo "assembled directory not found: $assembled_directory" >&2
   exit 1
 fi
@@ -41,6 +48,30 @@ fi
 
 tmp_directory="$(mktemp -d)"
 trap 'rm -rf "$tmp_directory"' EXIT
+
+if [ -z "$assembled_directory" ]; then
+  current_patch="${repo_root}/patches/${language}.patch"
+  shared_readme="${repo_root}/interview/shared/README.challenge.md"
+  for required_file in "$current_patch" "$shared_readme"; do
+    if [ ! -f "$required_file" ]; then
+      echo "required file not found: $required_file" >&2
+      exit 1
+    fi
+  done
+
+  assembled_directory="${tmp_directory}/assembled"
+  mkdir "$assembled_directory"
+  cp -R "${template_directory}/." "$assembled_directory/"
+  # README.md is rebuilt below, so its hunks are skipped; this keeps
+  # regeneration working after the template README has been edited.
+  git -C "$assembled_directory" apply --exclude=README.md "$current_patch"
+  {
+    cat "${template_directory}/README.md"
+    echo
+    cat "$shared_readme"
+  } > "${assembled_directory}/README.md"
+fi
+
 worktree="${tmp_directory}/worktree"
 mkdir "$worktree"
 cp -R "${template_directory}/." "$worktree/"
