@@ -219,7 +219,7 @@ index 583d888..9d332e9 100644
 +}
 diff --git a/test/order_scenario_test.go b/test/order_scenario_test.go
 new file mode 100644
-index 0000000..de74563
+index 0000000..2d461b0
 --- /dev/null
 +++ b/test/order_scenario_test.go
 @@ -0,0 +1,168 @@
@@ -300,7 +300,7 @@ index 0000000..de74563
 +	}
 +	diff1 := total1.Sub(decimal.NewFromInt(100000)).Abs()
 +	if diff1.GreaterThan(decimal.NewFromInt(2)) {
-+		t.Errorf("asset1 total should be ~100000, got %s", total1.String())
++		t.Fatalf("asset1 total should be ~100000, got %s", total1.String())
 +	}
 +
 +	asset1Toyopa := findStock(asset1.Stocks, "Toyopa")
@@ -326,7 +326,7 @@ index 0000000..de74563
 +	}
 +	diff2 := total2.Sub(decimal.NewFromInt(200000)).Abs()
 +	if diff2.GreaterThan(decimal.NewFromInt(4)) {
-+		t.Errorf("asset2 total should be ~200000, got %s", total2.String())
++		t.Fatalf("asset2 total should be ~200000, got %s", total2.String())
 +	}
 +
 +	t.Log("現金比率5%に対して現金が 10,000円、最適ポートフォリオに基づき Toyopa の保有額が 76,000 円(40%)、Somy の保有額が 114,000 円(60%) となる")
@@ -363,7 +363,7 @@ index 0000000..de74563
 +	}
 +	diff3 := total3.Sub(total2).Abs()
 +	if diff3.GreaterThan(decimal.NewFromInt(4)) {
-+		t.Errorf("asset3 total should be ~%s (total2), got %s", total2.String(), total3.String())
++		t.Fatalf("asset3 total should be ~%s (total2), got %s", total2.String(), total3.String())
 +	}
 +
 +	t.Log("現金比率5%に対して現金が 10,000円、最適ポートフォリオに基づき Toyopa の保有額が 19,000 円(10%)、Somy の保有額が 171,000 円(90%) となる")

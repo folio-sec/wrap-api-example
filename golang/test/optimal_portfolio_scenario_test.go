@@ -73,6 +73,6 @@ func assertDecimalEqual(t *testing.T, label, got, want string) {
 		t.Fatalf("%s: invalid want value %q: %v", label, want, err)
 	}
 	if !g.Equal(w) {
-		t.Errorf("%s: got %s, want %s", label, got, want)
+		t.Fatalf("%s: got %s, want %s", label, got, want)
 	}
 }
