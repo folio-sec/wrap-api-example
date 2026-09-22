@@ -19,43 +19,24 @@ trap 'rm -rf "$staging_directory"' EXIT
 languages=(golang java17 java8 php python ruby scala typescript)
 assets=()
 
-remove_generated_files() {
-  local directory="$1"
+# Copy only the files git tracks for the language directory. Build
+# outputs, dependency trees, and editor state are never tracked, so this
+# keeps them out of the release without maintaining a list of patterns.
+copy_tracked_files() {
+  local source_directory="$1"
+  local destination_directory="$2"
 
-  find "$directory" -depth -type d \( \
-    -name target -o \
-    -name node_modules -o \
-    -name vendor -o \
-    -name dist -o \
-    -name .venv -o \
-    -name venv -o \
-    -name __pycache__ -o \
-    -name .pytest_cache -o \
-    -name .mypy_cache -o \
-    -name .ruff_cache -o \
-    -name '*.egg-info' -o \
-    -name .bundle -o \
-    -name .bsp \
-  \) -exec rm -rf -- {} +
-
-  find "$directory" -type f \( \
-    -name '*.pyc' -o \
-    -name '*.pyo' -o \
-    -name '*.class' -o \
-    -name '*.log' -o \
-    -name .phpunit.result.cache -o \
-    -name composer.lock -o \
-    -name go.work -o \
-    -name go.work.sum \
-  \) -delete
+  mkdir -p "$destination_directory"
+  git -C "$source_directory" ls-files -z \
+    | tar -C "$source_directory" --null -T - -cf - \
+    | tar -C "$destination_directory" -xf -
 }
 
 for language in "${languages[@]}"; do
   template_parent="${staging_directory}/template-${language}"
   assembled_parent="${staging_directory}/assembled-${language}"
   mkdir -p "$template_parent" "$assembled_parent"
-  cp -R "${repo_root}/${language}" "${template_parent}/${language}"
-  remove_generated_files "${template_parent}/${language}"
+  copy_tracked_files "${repo_root}/${language}" "${template_parent}/${language}"
 
   "${repo_root}/scripts/verify-interview-patch.sh" \
     "$language" "${template_parent}/${language}"

@@ -79,18 +79,24 @@ if [ -e "${template_directory}/${rebalance_usecase}" ]; then
   exit 1
 fi
 
-if grep -R -n -i -E \
-  --exclude-dir=.git \
-  --exclude-dir=target \
-  --exclude-dir=node_modules \
-  --exclude-dir=vendor \
-  --exclude-dir=dist \
-  --exclude-dir=.venv \
-  --exclude-dir=venv \
-  --exclude-dir=__pycache__ \
-  --exclude-dir='*.egg-info' \
-  'rebalance|リバランス' "$template_directory"; then
+# Scan every file that the template's own .gitignore files do not ignore,
+# whether or not the directory is a git repository. Build outputs such as
+# python/build/lib (created by a non-editable pip install) can hold copies of
+# the interview code and must not cause false positives; untracked but
+# unignored files are still scanned because they would ship in an archive.
+grep_status=0
+matches="$(
+  cd "$template_directory" \
+    && git grep --no-index --exclude-standard -n -i -I -E \
+      'rebalance|リバランス' -- .
+)" || grep_status=$?
+
+if [ "$grep_status" -eq 0 ]; then
+  printf '%s\n' "$matches" >&2
   echo "template contains rebalance-related content" >&2
+  exit 1
+elif [ "$grep_status" -ne 1 ]; then
+  echo "git grep failed with status ${grep_status}" >&2
   exit 1
 fi
 
