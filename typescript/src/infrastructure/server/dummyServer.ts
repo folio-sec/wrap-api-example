@@ -1,7 +1,6 @@
 import { GetAssetUsecase } from "../../application/usecase/asset/getAssetUsecase";
 import { AdditionalBuyOrderUsecase } from "../../application/usecase/order/additionalBuyOrderUsecase";
 import { NewOrderUsecase } from "../../application/usecase/order/newOrderUsecase";
-import { RebalanceOrderUsecase } from "../../application/usecase/order/rebalanceOrderUsecase";
 import { GetLatestPortfolioUsecase } from "../../application/usecase/portfolio/getLatestPortfolioUsecase";
 import { UpdatePortfolioUsecase } from "../../application/usecase/portfolio/updatePortfolioUsecase";
 import { AssetController } from "../../presentation/assetController";
@@ -37,7 +36,6 @@ export class DummyServer {
       accountRepository,
       portfolioRepository,
     );
-    const rebalanceOrderUsecase = new RebalanceOrderUsecase(accountRepository, portfolioRepository);
 
     const assetController = new AssetController(getAssetUsecase);
     const portfolioController = new PortfolioController(
@@ -47,7 +45,6 @@ export class DummyServer {
     const orderController = new OrderController(
       newOrderUsecase,
       additionalBuyOrderUsecase,
-      rebalanceOrderUsecase,
     );
 
     return new DummyServer(assetController, portfolioController, orderController);

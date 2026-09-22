@@ -1,0 +1,361 @@
+diff --git a/README.md b/README.md
+index 069501f..f7094ca 100644
+--- a/README.md
++++ b/README.md
+@@ -31,3 +31,67 @@ git commit -m init
+ # テスト実行
+ .\mvnw.cmd test
+ ```
++
++## サービス概要
++
++このアプリケーションは、FOLIOで提供されるロボアドバイザーサービスを模倣したバックエンドAPIサーバーです。
++
++- ロボアドバイザーは、気軽に投資が出来るサービスとなっています
++- お客様は「10万円投資がしたい」となったら、10万円を新規注文で入れていただくと投資が始められます
++- どういった銘柄を運用するかは、お客様ではなく、サービスで管理されたポートフォリオに基づき運用されます
++
++### サービスについて
++
++- **顧客の口座**
++  - 初めて資金を投入することを新規注文と呼び、この注文を入れることで口座が開き資産運用が始まります
++  - 口座の中で資産を管理することになります
++- **顧客口座の資産**
++  - 顧客は現金と銘柄及びその資産額を口座内で保有します
++    - 簡略化のために、顧客は銘柄ごとに保有額（円）を保持します（例: Toyopa銘柄を 500 円分保有する）
++    - 本来は、口座には株数が保持されますが、各銘柄を資産額（円）で直接保有するものとします（市場価格の概念も取り扱いません）
++  - また、総資産の内、5%は常に現金で保持します
++    - 例: 総資産100万円のうち5万円（5%）を現金として保持し、残り95万円分をいくつかの銘柄で保有する
++- **最適ポートフォリオ**
++  - サービスで管理する、保有銘柄を100%配分した組み合わせのことを最適ポートフォリオと呼びます
++    - 例: 合計100%のうち、Toyopa銘柄を40%・Somy銘柄を60%の最適ポートフォリオが現在設定されている
++  - 購入時・売却時・リバランス時には、注文後の資産比率が __現在の最適ポートフォリオ__ に近づける形での調整を実施します
++    - 例: 先のポートフォリオ例の場合、100万円を新規注文した場合、 5万円の現金 + Toyopa銘柄38万円分 + Somy銘柄57万円分 が口座内で管理されます
++    - なお、APIを叩くと __即時__ 売買が成立し資産に反映出来るものとします（受け渡し日などの概念はありません）
++- **各種注文**
++  - __新規注文__
++    - 初めて資金を投入することで、新規に口座開設が行われ資産運用が始まるもの
++  - __追加注文__
++    - 新規注文後に、追加で資金を投入すること
++  - __全売却注文__
++    - 運用中の銘柄を全て売却して現金にすること
++  - __リバランス注文__
++    - 運用されている資産を、サービスで保有する最適ポートフォリオに近づけるよう調整すること
++    - 例:
++      - 新規注文時には、最適ポートフォリオが `Toyopa銘柄30% + Somy銘柄70%` で構成される場合、顧客口座においても同様の資産配分となる
++      - その後にサービス上で最適ポートフォリオが `Toyopa銘柄50% + Somy銘柄50%` に更新される
++      - 更新後に、リバランス注文を入れると、顧客の口座も最新の最適ポートフォリオ通りの内容になる
++        - この場合、Toyopa銘柄が20%分購入され、Somy銘柄が20%分売却される
++
++### 実装について
++
++- Repository はモック実装としてin-memoryにデータを保持していますが、RDBを使う想定で回答してください。
++
++## 確認観点
++
++- 成果を出すこと
++- 成果物についての理解・責任を持つこと
++
++## 課題
++
++以下の課題をAIを用いて、あなた自身の言葉・実装で回答してください。
++
++1. API/アーキテクチャについてAIと協力しながら自分の言葉で説明してください
++    1. 全てのAPIについて説明する必要はなく、パッケージ構成やそれらの役割・関連について説明してください
++2. テストが全て通るようにしてください
++    1. まずは現状のテストを走らせて、どのような内容で落ちているかを説明してください
++    1. また、実装バグがあるため、テストコードは一切変更せず、AIと協力しながら実装を修正してください
++    1. その上で、修正内容について説明をしてください
++3. 全売却APIを実装してください
++    1. 全売却後の現金の取り扱いに関しての方針を決めてください
++    1. ストレッチ: 売却後の現金は銀行APIへ連携
++4. （部分売却APIを実装してください）
+diff --git a/src/main/java/folio/codinginterview/application/usecase/order/RebalanceOrderUsecase.java b/src/main/java/folio/codinginterview/application/usecase/order/RebalanceOrderUsecase.java
+new file mode 100644
+index 0000000..4fbd604
+--- /dev/null
++++ b/src/main/java/folio/codinginterview/application/usecase/order/RebalanceOrderUsecase.java
+@@ -0,0 +1,46 @@
++package folio.codinginterview.application.usecase.order;
++
++import folio.codinginterview.application.repository.AccountRepository;
++import folio.codinginterview.application.repository.PortfolioRepository;
++import folio.codinginterview.domain.UserId;
++
++import java.util.concurrent.CompletableFuture;
++
++public final class RebalanceOrderUsecase {
++    public record Input(UserId userId) {}
++
++    public static class Exception extends RuntimeException {
++        protected Exception(String msg) { super(msg); }
++    }
++
++    public static final class UserNotFound extends Exception {
++        public static final UserNotFound INSTANCE = new UserNotFound();
++        private UserNotFound() { super("user not found"); }
++    }
++
++    private final AccountRepository accountRepository;
++    private final PortfolioRepository portfolioRepository;
++
++    public RebalanceOrderUsecase(
++            AccountRepository accountRepository,
++            PortfolioRepository portfolioRepository
++    ) {
++        this.accountRepository = accountRepository;
++        this.portfolioRepository = portfolioRepository;
++    }
++
++    public CompletableFuture<Void> run(Input input) {
++        return accountRepository.find(input.userId()).thenCompose(maybeAccount -> {
++            if (maybeAccount.isEmpty()) {
++                CompletableFuture<Void> failed = new CompletableFuture<>();
++                failed.completeExceptionally(UserNotFound.INSTANCE);
++                return failed;
++            }
++            var account = maybeAccount.get();
++            return portfolioRepository.get().thenCompose(portfolio -> {
++                var updated = account.rebalance(portfolio);
++                return accountRepository.upsert(input.userId(), updated);
++            });
++        });
++    }
++}
+diff --git a/src/main/java/folio/codinginterview/domain/Account.java b/src/main/java/folio/codinginterview/domain/Account.java
+index b572591..c27e8fc 100644
+--- a/src/main/java/folio/codinginterview/domain/Account.java
++++ b/src/main/java/folio/codinginterview/domain/Account.java
+@@ -87,4 +87,19 @@ public Account addFunds(BigDecimal amount, Portfolio portfolio) {
+         BigDecimal finalCash = totalAfter.subtract(finalAmount);
+         return new Account(finalCash, allStocks);
+     }
++
++    /** 保有資産を最適ポートフォリオの比率に近づける。 */
++    public Account rebalance(Portfolio portfolio) {
++        // XXX this implementation might not be correct
++        BigDecimal investable = this.total();
++        List<Stock> newStocks = new ArrayList<>();
++        BigDecimal usedForStocks = BigDecimal.ZERO;
++        for (PortfolioItem item : portfolio.items()) {
++            BigDecimal amt = floor0(investable.multiply(item.rate()));
++            newStocks.add(new Stock(item.symbol(), amt));
++            usedForStocks = usedForStocks.add(amt);
++        }
++        BigDecimal finalCash = investable.subtract(usedForStocks);
++        return new Account(finalCash, newStocks);
++    }
+ }
+diff --git a/src/main/java/folio/codinginterview/infrastructure/server/DummyServer.java b/src/main/java/folio/codinginterview/infrastructure/server/DummyServer.java
+index 1890708..63e6610 100644
+--- a/src/main/java/folio/codinginterview/infrastructure/server/DummyServer.java
++++ b/src/main/java/folio/codinginterview/infrastructure/server/DummyServer.java
+@@ -3,6 +3,7 @@
+ import folio.codinginterview.application.usecase.asset.GetAssetUsecase;
+ import folio.codinginterview.application.usecase.order.AdditionalBuyOrderUsecase;
+ import folio.codinginterview.application.usecase.order.NewOrderUsecase;
++import folio.codinginterview.application.usecase.order.RebalanceOrderUsecase;
+ import folio.codinginterview.application.usecase.portfolio.GetLatestPortfolioUsecase;
+ import folio.codinginterview.application.usecase.portfolio.UpdatePortfolioUsecase;
+ import folio.codinginterview.infrastructure.repository.AccountRepositoryImpl;
+@@ -41,10 +42,11 @@ public static DummyServer defaultInstance() {
+         var updatePortfolioUsecase = new UpdatePortfolioUsecase(portfolioRepository);
+         var newOrderUsecase = new NewOrderUsecase(accountRepository, portfolioRepository);
+         var additionalBuyOrderUsecase = new AdditionalBuyOrderUsecase(accountRepository, portfolioRepository);
++        var rebalanceOrderUsecase = new RebalanceOrderUsecase(accountRepository, portfolioRepository);
+ 
+         var assetController = new AssetController(getAssetUsecase);
+         var portfolioController = new PortfolioController(getLatestPortfolioUsecase, updatePortfolioUsecase);
+-        var orderController = new OrderController(newOrderUsecase, additionalBuyOrderUsecase);
++        var orderController = new OrderController(newOrderUsecase, additionalBuyOrderUsecase, rebalanceOrderUsecase);
+ 
+         return new DummyServer(assetController, portfolioController, orderController);
+     }
+diff --git a/src/main/java/folio/codinginterview/presentation/OrderController.java b/src/main/java/folio/codinginterview/presentation/OrderController.java
+index bf64860..d18257c 100644
+--- a/src/main/java/folio/codinginterview/presentation/OrderController.java
++++ b/src/main/java/folio/codinginterview/presentation/OrderController.java
+@@ -2,6 +2,7 @@
+ 
+ import folio.codinginterview.application.usecase.order.AdditionalBuyOrderUsecase;
+ import folio.codinginterview.application.usecase.order.NewOrderUsecase;
++import folio.codinginterview.application.usecase.order.RebalanceOrderUsecase;
+ import folio.codinginterview.presentation.PresentationException.BadRequestException;
+ 
+ import java.util.concurrent.CompletableFuture;
+@@ -12,15 +13,20 @@ public record NewOrderRequest(String userId, String amount) {}
+ 
+     public record AdditionalOrderRequest(String userId, String amount) {}
+ 
++    public record RebalanceOrderRequest(String userId) {}
++
+     private final NewOrderUsecase newOrderUsecase;
+     private final AdditionalBuyOrderUsecase additionalBuyOrderUsecase;
++    private final RebalanceOrderUsecase rebalanceOrderUsecase;
+ 
+     public OrderController(
+             NewOrderUsecase newOrderUsecase,
+-            AdditionalBuyOrderUsecase additionalBuyOrderUsecase
++            AdditionalBuyOrderUsecase additionalBuyOrderUsecase,
++            RebalanceOrderUsecase rebalanceOrderUsecase
+     ) {
+         this.newOrderUsecase = newOrderUsecase;
+         this.additionalBuyOrderUsecase = additionalBuyOrderUsecase;
++        this.rebalanceOrderUsecase = rebalanceOrderUsecase;
+     }
+ 
+     public CompletableFuture<Void> newOrder(NewOrderRequest req) {
+@@ -60,4 +66,19 @@ public CompletableFuture<Void> additionalOrder(AdditionalOrderRequest req) {
+                                     return null;
+                                 })));
+     }
++
++    public CompletableFuture<Void> rebalanceOrder(RebalanceOrderRequest req) {
++        return parseUserId(req.userId()).thenCompose(uid ->
++                rebalanceOrderUsecase.run(new RebalanceOrderUsecase.Input(uid))
++                        .handle((v, ex) -> {
++                            if (ex != null) {
++                                Throwable cause = ex instanceof CompletionException ? ex.getCause() : ex;
++                                if (cause instanceof RebalanceOrderUsecase.UserNotFound) {
++                                    throw new CompletionException(new BadRequestException("user has no live account"));
++                                }
++                                throw new CompletionException(cause);
++                            }
++                            return null;
++                        }));
++    }
+ }
+diff --git a/src/test/java/folio/codinginterview/OrderScenarioTest.java b/src/test/java/folio/codinginterview/OrderScenarioTest.java
+new file mode 100644
+index 0000000..1ff1fe4
+--- /dev/null
++++ b/src/test/java/folio/codinginterview/OrderScenarioTest.java
+@@ -0,0 +1,128 @@
++package folio.codinginterview;
++
++import folio.codinginterview.infrastructure.server.DummyServer;
++import folio.codinginterview.presentation.AssetController;
++import folio.codinginterview.presentation.OrderController;
++import folio.codinginterview.presentation.PortfolioController;
++import folio.codinginterview.presentation.PresentationException.BadRequestException;
++import org.junit.jupiter.api.BeforeEach;
++import org.junit.jupiter.api.Test;
++
++import java.math.BigDecimal;
++import java.util.List;
++import java.util.UUID;
++import java.util.concurrent.CompletionException;
++import java.util.concurrent.ExecutionException;
++
++import static org.junit.jupiter.api.Assertions.assertTrue;
++import static org.junit.jupiter.api.Assertions.fail;
++
++class OrderScenarioTest {
++
++    private static void assertBigDecimalEquals(BigDecimal expected, BigDecimal actual) {
++        assertTrue(expected.compareTo(actual) == 0, "expected " + expected + " but was " + actual);
++    }
++
++    private final DummyServer server = DummyServer.defaultInstance();
++    private final AssetController ac = server.assetController();
++    private final PortfolioController pc = server.portfolioController();
++    private final OrderController oc = server.orderController();
++
++    @BeforeEach
++    void setUp() throws Exception {
++        // initialize optimal portfolio
++        pc.updateOptimalPortfolio(new PortfolioController.UpdateOptimalPortfolioRequest(List.of(
++                new PortfolioController.PortfolioItemDto("Toyopa", "0.40"),
++                new PortfolioController.PortfolioItemDto("Somy", "0.60")
++        ))).get();
++    }
++
++    private Throwable unwrap(Throwable e) {
++        while (e instanceof ExecutionException || e instanceof CompletionException) {
++            if (e.getCause() == null) break;
++            e = e.getCause();
++        }
++        return e;
++    }
++
++    @Test
++    void 新規拠出追加拠出リバランスの一連の操作が正しく機能する() throws Exception {
++        String userId = UUID.randomUUID().toString();
++
++        // Given: 存在しないユーザーで資産を取得しようとする
++        Throwable notFound = null;
++        try {
++            ac.getAsset(new AssetController.GetAssetRequest(userId)).get();
++            fail("expected exception");
++        } catch (Exception e) {
++            notFound = unwrap(e);
++        }
++        // Then: BadRequestException が返される
++        assertTrue(notFound instanceof BadRequestException);
++
++        // When: 最適ポートフォリオを Toyopa=40%, Somy=60% に更新する
++        pc.updateOptimalPortfolio(new PortfolioController.UpdateOptimalPortfolioRequest(List.of(
++                new PortfolioController.PortfolioItemDto("Toyopa", "0.40"),
++                new PortfolioController.PortfolioItemDto("Somy", "0.60")
++        ))).get();
++
++        // And: 新規注文を 100,000 円で注文する
++        oc.newOrder(new OrderController.NewOrderRequest(userId, "100000")).get();
++
++        var asset1 = ac.getAsset(new AssetController.GetAssetRequest(userId)).get();
++        var symbols1 = asset1.stocks().stream().map(AssetController.StockDto::symbol).toList();
++        assertTrue(symbols1.contains("Toyopa") && symbols1.contains("Somy") && symbols1.size() == 2);
++        BigDecimal total1 = new BigDecimal(asset1.cashAmount());
++        for (var e : asset1.stocks()) {
++            total1 = total1.add(new BigDecimal(e.amountJpy()));
++        }
++        assertTrue(total1.subtract(new BigDecimal(100000)).abs().compareTo(new BigDecimal(2)) <= 0);
++
++        // Then: 現金比率5%に対して現金が 5,000円、最適ポートフォリオに基づき Toyopa の保有額が 38,000 円(40%)、Somy の保有額が 57,000 円(60%) となる
++        var asset1Toyopa = asset1.stocks().stream().filter(e -> e.symbol().equals("Toyopa")).findFirst().orElseThrow();
++        var asset1Somy = asset1.stocks().stream().filter(e -> e.symbol().equals("Somy")).findFirst().orElseThrow();
++        assertBigDecimalEquals(new BigDecimal("38000"), new BigDecimal(asset1Toyopa.amountJpy()));
++        assertBigDecimalEquals(new BigDecimal("57000"), new BigDecimal(asset1Somy.amountJpy()));
++        assertBigDecimalEquals(new BigDecimal("5000"), new BigDecimal(asset1.cashAmount()));
++
++        // When: 追加注文を 100,000 円で注文する
++        oc.additionalOrder(new OrderController.AdditionalOrderRequest(userId, "100000")).get();
++
++        // Then: 資産合計が約 200,000 円になる
++        var asset2 = ac.getAsset(new AssetController.GetAssetRequest(userId)).get();
++        BigDecimal total2 = new BigDecimal(asset2.cashAmount());
++        for (var e : asset2.stocks()) {
++            total2 = total2.add(new BigDecimal(e.amountJpy()));
++        }
++        assertTrue(total2.subtract(new BigDecimal(200000)).abs().compareTo(new BigDecimal(4)) <= 0);
++
++        // And: 現金比率5%に対して現金が 10,000円、最適ポートフォリオに基づき Toyopa の保有額が 76,000 円(40%)、Somy の保有額が 114,000 円(60%) となる
++        var asset2Toyopa = asset2.stocks().stream().filter(e -> e.symbol().equals("Toyopa")).findFirst().orElseThrow();
++        var asset2Somy = asset2.stocks().stream().filter(e -> e.symbol().equals("Somy")).findFirst().orElseThrow();
++        assertBigDecimalEquals(new BigDecimal("76000"), new BigDecimal(asset2Toyopa.amountJpy()));
++        assertBigDecimalEquals(new BigDecimal("114000"), new BigDecimal(asset2Somy.amountJpy()));
++        assertBigDecimalEquals(new BigDecimal("10000"), new BigDecimal(asset2.cashAmount()));
++
++        // When: 最適ポートフォリオを Toyopa=10%, Somy=90% に変更して、リバランス注文をする
++        pc.updateOptimalPortfolio(new PortfolioController.UpdateOptimalPortfolioRequest(List.of(
++                new PortfolioController.PortfolioItemDto("Toyopa", "0.10"),
++                new PortfolioController.PortfolioItemDto("Somy", "0.90")
++        ))).get();
++        oc.rebalanceOrder(new OrderController.RebalanceOrderRequest(userId)).get();
++
++        // Then: リバランス後も資産合計がほぼ変わらない
++        var asset3 = ac.getAsset(new AssetController.GetAssetRequest(userId)).get();
++        BigDecimal total3 = new BigDecimal(asset3.cashAmount());
++        for (var e : asset3.stocks()) {
++            total3 = total3.add(new BigDecimal(e.amountJpy()));
++        }
++        assertTrue(total3.subtract(total2).abs().compareTo(new BigDecimal(4)) <= 0);
++
++        // And: 現金比率5%に対して現金が 10,000円、最適ポートフォリオに基づき Toyopa の保有額が 19,000 円(10%)、Somy の保有額が 171,000 円(90%) となる
++        var asset3Toyopa = asset3.stocks().stream().filter(e -> e.symbol().equals("Toyopa")).findFirst().orElseThrow();
++        var asset3Somy = asset3.stocks().stream().filter(e -> e.symbol().equals("Somy")).findFirst().orElseThrow();
++        assertBigDecimalEquals(new BigDecimal("19000"), new BigDecimal(asset3Toyopa.amountJpy()));
++        assertBigDecimalEquals(new BigDecimal("171000"), new BigDecimal(asset3Somy.amountJpy()));
++        assertBigDecimalEquals(new BigDecimal("10000"), new BigDecimal(asset3.cashAmount()));
++    }
++}

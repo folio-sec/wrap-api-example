@@ -1,0 +1,341 @@
+diff --git a/README.md b/README.md
+index 815ecc2..d38e732 100644
+--- a/README.md
++++ b/README.md
+@@ -32,3 +32,67 @@ composer install
+ # test
+ vendor\bin\phpunit
+ ```
++
++## サービス概要
++
++このアプリケーションは、FOLIOで提供されるロボアドバイザーサービスを模倣したバックエンドAPIサーバーです。
++
++- ロボアドバイザーは、気軽に投資が出来るサービスとなっています
++- お客様は「10万円投資がしたい」となったら、10万円を新規注文で入れていただくと投資が始められます
++- どういった銘柄を運用するかは、お客様ではなく、サービスで管理されたポートフォリオに基づき運用されます
++
++### サービスについて
++
++- **顧客の口座**
++  - 初めて資金を投入することを新規注文と呼び、この注文を入れることで口座が開き資産運用が始まります
++  - 口座の中で資産を管理することになります
++- **顧客口座の資産**
++  - 顧客は現金と銘柄及びその資産額を口座内で保有します
++    - 簡略化のために、顧客は銘柄ごとに保有額（円）を保持します（例: Toyopa銘柄を 500 円分保有する）
++    - 本来は、口座には株数が保持されますが、各銘柄を資産額（円）で直接保有するものとします（市場価格の概念も取り扱いません）
++  - また、総資産の内、5%は常に現金で保持します
++    - 例: 総資産100万円のうち5万円（5%）を現金として保持し、残り95万円分をいくつかの銘柄で保有する
++- **最適ポートフォリオ**
++  - サービスで管理する、保有銘柄を100%配分した組み合わせのことを最適ポートフォリオと呼びます
++    - 例: 合計100%のうち、Toyopa銘柄を40%・Somy銘柄を60%の最適ポートフォリオが現在設定されている
++  - 購入時・売却時・リバランス時には、注文後の資産比率が __現在の最適ポートフォリオ__ に近づける形での調整を実施します
++    - 例: 先のポートフォリオ例の場合、100万円を新規注文した場合、 5万円の現金 + Toyopa銘柄38万円分 + Somy銘柄57万円分 が口座内で管理されます
++    - なお、APIを叩くと __即時__ 売買が成立し資産に反映出来るものとします（受け渡し日などの概念はありません）
++- **各種注文**
++  - __新規注文__
++    - 初めて資金を投入することで、新規に口座開設が行われ資産運用が始まるもの
++  - __追加注文__
++    - 新規注文後に、追加で資金を投入すること
++  - __全売却注文__
++    - 運用中の銘柄を全て売却して現金にすること
++  - __リバランス注文__
++    - 運用されている資産を、サービスで保有する最適ポートフォリオに近づけるよう調整すること
++    - 例:
++      - 新規注文時には、最適ポートフォリオが `Toyopa銘柄30% + Somy銘柄70%` で構成される場合、顧客口座においても同様の資産配分となる
++      - その後にサービス上で最適ポートフォリオが `Toyopa銘柄50% + Somy銘柄50%` に更新される
++      - 更新後に、リバランス注文を入れると、顧客の口座も最新の最適ポートフォリオ通りの内容になる
++        - この場合、Toyopa銘柄が20%分購入され、Somy銘柄が20%分売却される
++
++### 実装について
++
++- Repository はモック実装としてin-memoryにデータを保持していますが、RDBを使う想定で回答してください。
++
++## 確認観点
++
++- 成果を出すこと
++- 成果物についての理解・責任を持つこと
++
++## 課題
++
++以下の課題をAIを用いて、あなた自身の言葉・実装で回答してください。
++
++1. API/アーキテクチャについてAIと協力しながら自分の言葉で説明してください
++    1. 全てのAPIについて説明する必要はなく、パッケージ構成やそれらの役割・関連について説明してください
++2. テストが全て通るようにしてください
++    1. まずは現状のテストを走らせて、どのような内容で落ちているかを説明してください
++    1. また、実装バグがあるため、テストコードは一切変更せず、AIと協力しながら実装を修正してください
++    1. その上で、修正内容について説明をしてください
++3. 全売却APIを実装してください
++    1. 全売却後の現金の取り扱いに関しての方針を決めてください
++    1. ストレッチ: 売却後の現金は銀行APIへ連携
++4. （部分売却APIを実装してください）
+diff --git a/src/CodingInterview/Application/Usecase/Order/RebalanceOrderUsecase.php b/src/CodingInterview/Application/Usecase/Order/RebalanceOrderUsecase.php
+new file mode 100644
+index 0000000..1699bc5
+--- /dev/null
++++ b/src/CodingInterview/Application/Usecase/Order/RebalanceOrderUsecase.php
+@@ -0,0 +1,38 @@
++<?php
++
++declare(strict_types=1);
++
++namespace Folio\CodingInterview\Application\Usecase\Order;
++
++use Folio\CodingInterview\Application\Repository\AccountRepository;
++use Folio\CodingInterview\Application\Repository\PortfolioRepository;
++use Folio\CodingInterview\Domain\UserId;
++
++final class RebalanceOrderUsecaseInput
++{
++    public function __construct(public readonly UserId $userId) {}
++}
++
++final class RebalanceOrderUserNotFoundException extends \RuntimeException
++{
++    public function __construct() { parent::__construct('user has no live account'); }
++}
++
++final class RebalanceOrderUsecase
++{
++    public function __construct(
++        private readonly AccountRepository $accountRepository,
++        private readonly PortfolioRepository $portfolioRepository,
++    ) {}
++
++    public function run(RebalanceOrderUsecaseInput $input): void
++    {
++        $account = $this->accountRepository->find($input->userId);
++        if ($account === null) {
++            throw new RebalanceOrderUserNotFoundException();
++        }
++        $portfolio = $this->portfolioRepository->get();
++        $updated = $account->rebalance($portfolio);
++        $this->accountRepository->upsert($input->userId, $updated);
++    }
++}
+diff --git a/src/CodingInterview/Domain/Account.php b/src/CodingInterview/Domain/Account.php
+index a80c184..23ff9f5 100644
+--- a/src/CodingInterview/Domain/Account.php
++++ b/src/CodingInterview/Domain/Account.php
+@@ -80,4 +80,19 @@ final class Account
+         return new self($finalCash, $allStocks);
+     }
+ 
++    /** リバランス注文で最適ポートフォリオに調整する。 */
++    public function rebalance(Portfolio $portfolio): self
++    {
++        // XXX this implementation might not be correct
++        $investable = $this->total();
++        $stocks = [];
++        $usedForStocks = BigDecimal::zero();
++        foreach ($portfolio->items as $item) {
++            $amt = $investable->mul($item->rate)->setScaleDown(0);
++            $stocks[] = new Stock($item->symbol, $amt);
++            $usedForStocks = $usedForStocks->add($amt);
++        }
++        $finalCash = $investable->sub($usedForStocks);
++        return new self($finalCash, $stocks);
++    }
+ }
+diff --git a/src/CodingInterview/Infrastructure/Server/DummyServer.php b/src/CodingInterview/Infrastructure/Server/DummyServer.php
+index e79a93a..38700cc 100644
+--- a/src/CodingInterview/Infrastructure/Server/DummyServer.php
++++ b/src/CodingInterview/Infrastructure/Server/DummyServer.php
+@@ -7,6 +7,7 @@ namespace Folio\CodingInterview\Infrastructure\Server;
+ use Folio\CodingInterview\Application\Usecase\Asset\GetAssetUsecase;
+ use Folio\CodingInterview\Application\Usecase\Order\AdditionalBuyOrderUsecase;
+ use Folio\CodingInterview\Application\Usecase\Order\NewOrderUsecase;
++use Folio\CodingInterview\Application\Usecase\Order\RebalanceOrderUsecase;
+ use Folio\CodingInterview\Application\Usecase\Portfolio\GetLatestPortfolioUsecase;
+ use Folio\CodingInterview\Application\Usecase\Portfolio\UpdatePortfolioUsecase;
+ use Folio\CodingInterview\Infrastructure\Repository\AccountRepositoryImpl;
+@@ -33,11 +34,12 @@ final class DummyServer
+         $updatePortfolioUsecase = new UpdatePortfolioUsecase($portfolioRepository);
+         $newOrderUsecase = new NewOrderUsecase($accountRepository, $portfolioRepository);
+         $additionalBuyOrderUsecase = new AdditionalBuyOrderUsecase($accountRepository, $portfolioRepository);
++        $rebalanceOrderUsecase = new RebalanceOrderUsecase($accountRepository, $portfolioRepository);
+ 
+         return new DummyServer(
+             new AssetController($getAssetUsecase),
+             new PortfolioController($getLatestPortfolioUsecase, $updatePortfolioUsecase),
+-            new OrderController($newOrderUsecase, $additionalBuyOrderUsecase),
++            new OrderController($newOrderUsecase, $additionalBuyOrderUsecase, $rebalanceOrderUsecase),
+         );
+     }
+ }
+diff --git a/src/CodingInterview/Presentation/OrderController.php b/src/CodingInterview/Presentation/OrderController.php
+index 6bbfc31..051050d 100644
+--- a/src/CodingInterview/Presentation/OrderController.php
++++ b/src/CodingInterview/Presentation/OrderController.php
+@@ -12,6 +12,9 @@ use Folio\CodingInterview\Application\Usecase\Order\NewOrderAmountTooSmallExcept
+ use Folio\CodingInterview\Application\Usecase\Order\NewOrderUserAlreadyExistsException;
+ use Folio\CodingInterview\Application\Usecase\Order\NewOrderUsecase;
+ use Folio\CodingInterview\Application\Usecase\Order\NewOrderUsecaseInput;
++use Folio\CodingInterview\Application\Usecase\Order\RebalanceOrderUserNotFoundException;
++use Folio\CodingInterview\Application\Usecase\Order\RebalanceOrderUsecase;
++use Folio\CodingInterview\Application\Usecase\Order\RebalanceOrderUsecaseInput;
+ 
+ final class NewOrderRequest
+ {
+@@ -29,6 +32,11 @@ final class AdditionalOrderRequest
+     ) {}
+ }
+ 
++final class RebalanceOrderRequest
++{
++    public function __construct(public readonly string $userId) {}
++}
++
+ final class OrderController
+ {
+     use PresentationPreparation;
+@@ -36,6 +44,7 @@ final class OrderController
+     public function __construct(
+         private readonly NewOrderUsecase $newOrderUsecase,
+         private readonly AdditionalBuyOrderUsecase $additionalBuyOrderUsecase,
++        private readonly RebalanceOrderUsecase $rebalanceOrderUsecase,
+     ) {}
+ 
+     public function newOrder(NewOrderRequest $req): void
+@@ -64,4 +73,13 @@ final class OrderController
+         }
+     }
+ 
++    public function rebalanceOrder(RebalanceOrderRequest $req): void
++    {
++        $uid = $this->parseUserId($req->userId);
++        try {
++            $this->rebalanceOrderUsecase->run(new RebalanceOrderUsecaseInput($uid));
++        } catch (RebalanceOrderUserNotFoundException $e) {
++            throw new BadRequestException('user has no live account');
++        }
++    }
+ }
+diff --git a/tests/OrderScenarioTest.php b/tests/OrderScenarioTest.php
+new file mode 100644
+index 0000000..ce7f18b
+--- /dev/null
++++ b/tests/OrderScenarioTest.php
+@@ -0,0 +1,121 @@
++<?php
++
++declare(strict_types=1);
++
++namespace Folio\CodingInterview\Tests;
++
++use Folio\CodingInterview\Domain\BigDecimal;
++use Folio\CodingInterview\Infrastructure\Server\DummyServer;
++use Folio\CodingInterview\Presentation\AdditionalOrderRequest;
++use Folio\CodingInterview\Presentation\BadRequestException;
++use Folio\CodingInterview\Presentation\GetAssetRequest;
++use Folio\CodingInterview\Presentation\NewOrderRequest;
++use Folio\CodingInterview\Presentation\PortfolioItemDto;
++use Folio\CodingInterview\Presentation\RebalanceOrderRequest;
++use Folio\CodingInterview\Presentation\UpdateOptimalPortfolioRequest;
++use PHPUnit\Framework\TestCase;
++
++final class OrderScenarioTest extends TestCase
++{
++    public function test新規拠出追加拠出リバランスの一連の操作が正しく機能する(): void
++    {
++        $server = DummyServer::default();
++        $ac = $server->assetController;
++        $pc = $server->portfolioController;
++        $oc = $server->orderController;
++
++        // initialize optimal portfolio
++        $pc->updateOptimalPortfolio(new UpdateOptimalPortfolioRequest([
++            new PortfolioItemDto('Toyopa', '0.40'),
++            new PortfolioItemDto('Somy', '0.60'),
++        ]));
++
++        $userId = bin2hex(random_bytes(8));
++
++        // Given: 存在しないユーザーで資産を取得しようとする
++        try {
++            $ac->getAsset(new GetAssetRequest($userId));
++            $this->fail('expected BadRequestException for unknown user, but no exception was thrown');
++        } catch (BadRequestException $e) {
++            // Then: BadRequestException が返される
++        }
++
++        // When: 最適ポートフォリオを Toyopa=40%, Somy=60% に更新する
++        $pc->updateOptimalPortfolio(new UpdateOptimalPortfolioRequest([
++            new PortfolioItemDto('Toyopa', '0.40'),
++            new PortfolioItemDto('Somy', '0.60'),
++        ]));
++
++        // And: 新規注文を 100,000 円で注文する
++        $oc->newOrder(new NewOrderRequest($userId, '100000'));
++
++        $asset1 = $ac->getAsset(new GetAssetRequest($userId));
++        $symbols = array_map(fn($e) => $e->symbol, $asset1->stocks);
++        sort($symbols);
++        $this->assertSame(['Somy', 'Toyopa'], $symbols);
++
++        $total1 = new BigDecimal($asset1->cashAmount);
++        foreach ($asset1->stocks as $e) {
++            $total1 = $total1->add(new BigDecimal($e->amountJpy));
++        }
++        $this->assertLessThanOrEqual(0, $total1->sub(new BigDecimal('100000'))->abs()->compare(new BigDecimal('2')), "total1={$total1} (expected ≈100000)");
++
++        // Then: 現金比率5%に対して現金が 5,000円、最適ポートフォリオに基づき Toyopa の評価額が 38,000 円(40%)、Somy の評価額が 57,000 円(60%) となる
++        $toyopa1 = $this->findStock($asset1->stocks, 'Toyopa');
++        $somy1 = $this->findStock($asset1->stocks, 'Somy');
++        $this->assertSame('38000', (string)(new BigDecimal($toyopa1->amountJpy)));
++        $this->assertSame('57000', (string)(new BigDecimal($somy1->amountJpy)));
++        $this->assertSame('5000', (string)(new BigDecimal($asset1->cashAmount)));
++
++        // When: 追加注文を 100,000 円で注文する
++        $oc->additionalOrder(new AdditionalOrderRequest($userId, '100000'));
++
++        // Then: 資産合計が約 200,000 円になる
++        $asset2 = $ac->getAsset(new GetAssetRequest($userId));
++        $total2 = new BigDecimal($asset2->cashAmount);
++        foreach ($asset2->stocks as $e) {
++            $total2 = $total2->add(new BigDecimal($e->amountJpy));
++        }
++        $this->assertLessThanOrEqual(0, $total2->sub(new BigDecimal('200000'))->abs()->compare(new BigDecimal('4')), "total2={$total2} (expected ≈200000)");
++
++        // And: 現金比率5%に対して現金が 10,000円、最適ポートフォリオに基づき Toyopa の評価額が 76,000 円(40%)、Somy の評価額が 114,000 円(60%) となる
++        $toyopa2 = $this->findStock($asset2->stocks, 'Toyopa');
++        $somy2 = $this->findStock($asset2->stocks, 'Somy');
++        $this->assertSame('76000', (string)(new BigDecimal($toyopa2->amountJpy)));
++        $this->assertSame('114000', (string)(new BigDecimal($somy2->amountJpy)));
++        $this->assertSame('10000', (string)(new BigDecimal($asset2->cashAmount)));
++
++        // When: 最適ポートフォリオを Toyopa=10%, Somy=90% に変更して、リバランス注文をする
++        $pc->updateOptimalPortfolio(new UpdateOptimalPortfolioRequest([
++            new PortfolioItemDto('Toyopa', '0.10'),
++            new PortfolioItemDto('Somy', '0.90'),
++        ]));
++        $oc->rebalanceOrder(new RebalanceOrderRequest($userId));
++
++        // Then: リバランス後も資産合計がほぼ変わらない
++        $asset3 = $ac->getAsset(new GetAssetRequest($userId));
++        $total3 = new BigDecimal($asset3->cashAmount);
++        foreach ($asset3->stocks as $e) {
++            $total3 = $total3->add(new BigDecimal($e->amountJpy));
++        }
++        $this->assertLessThanOrEqual(0, $total3->sub($total2)->abs()->compare(new BigDecimal('4')), "total3={$total3}, total2={$total2} (expected ≈ equal)");
++
++        // And: 現金比率5%に対して現金が 10,000円、最適ポートフォリオに基づき Toyopa の評価額が 19,000 円(10%)、Somy の評価額が 171,000 円(90%) となる
++        $toyopa3 = $this->findStock($asset3->stocks, 'Toyopa');
++        $somy3 = $this->findStock($asset3->stocks, 'Somy');
++        $this->assertSame('19000', (string)(new BigDecimal($toyopa3->amountJpy)));
++        $this->assertSame('171000', (string)(new BigDecimal($somy3->amountJpy)));
++        $this->assertSame('10000', (string)(new BigDecimal($asset3->cashAmount)));
++    }
++
++    /** @param array $stocks */
++    private function findStock(array $stocks, string $symbol)
++    {
++        foreach ($stocks as $e) {
++            if ($e->symbol === $symbol) {
++                return $e;
++            }
++        }
++        $this->fail("stock not found: {$symbol}");
++    }
++}

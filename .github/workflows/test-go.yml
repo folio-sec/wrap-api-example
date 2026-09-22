@@ -25,10 +25,24 @@ jobs:
           go-version-file: 'golang/go.mod'
           cache: true
       - run: go mod download
-      - run: go build ./...
-      - run: go fmt ./...
-      - run: go vet ./...
-      - run: go test ./test/... -run TestOptimalPortfolioScenario
+      - name: Verify interview template and patch
+        run: '"${GITHUB_WORKSPACE}/scripts/verify-interview-patch.sh" golang .'
+      - name: Build template
+        run: go build ./...
+      - name: Vet template
+        run: go vet ./...
+      - name: Test template portfolio scenario
+        run: go test ./test/... -run TestOptimalPortfolioScenario
+      - name: Apply interview patch
+        run: '"${GITHUB_WORKSPACE}/scripts/apply-interview-patch.sh" golang .'
+      - name: Build assembled interview
+        run: go build ./...
+      - name: Format assembled interview
+        run: go fmt ./...
+      - name: Vet assembled interview
+        run: go vet ./...
+      - name: Test assembled portfolio scenario
+        run: go test ./test/... -run TestOptimalPortfolioScenario
       - name: Order scenario test should fail at the rebalance assertion
         run: |
           "${GITHUB_WORKSPACE}/.github/scripts/expect-order-scenario-failure.sh" \

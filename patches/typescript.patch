@@ -1,0 +1,323 @@
+diff --git a/README.md b/README.md
+index 8d989ff..883b92e 100644
+--- a/README.md
++++ b/README.md
+@@ -16,3 +16,67 @@ npm ci
+ # テスト実行
+ npm test
+ ```
++
++## サービス概要
++
++このアプリケーションは、FOLIOで提供されるロボアドバイザーサービスを模倣したバックエンドAPIサーバーです。
++
++- ロボアドバイザーは、気軽に投資が出来るサービスとなっています
++- お客様は「10万円投資がしたい」となったら、10万円を新規注文で入れていただくと投資が始められます
++- どういった銘柄を運用するかは、お客様ではなく、サービスで管理されたポートフォリオに基づき運用されます
++
++### サービスについて
++
++- **顧客の口座**
++  - 初めて資金を投入することを新規注文と呼び、この注文を入れることで口座が開き資産運用が始まります
++  - 口座の中で資産を管理することになります
++- **顧客口座の資産**
++  - 顧客は現金と銘柄及びその資産額を口座内で保有します
++    - 簡略化のために、顧客は銘柄ごとに保有額（円）を保持します（例: Toyopa銘柄を 500 円分保有する）
++    - 本来は、口座には株数が保持されますが、各銘柄を資産額（円）で直接保有するものとします（市場価格の概念も取り扱いません）
++  - また、総資産の内、5%は常に現金で保持します
++    - 例: 総資産100万円のうち5万円（5%）を現金として保持し、残り95万円分をいくつかの銘柄で保有する
++- **最適ポートフォリオ**
++  - サービスで管理する、保有銘柄を100%配分した組み合わせのことを最適ポートフォリオと呼びます
++    - 例: 合計100%のうち、Toyopa銘柄を40%・Somy銘柄を60%の最適ポートフォリオが現在設定されている
++  - 購入時・売却時・リバランス時には、注文後の資産比率が __現在の最適ポートフォリオ__ に近づける形での調整を実施します
++    - 例: 先のポートフォリオ例の場合、100万円を新規注文した場合、 5万円の現金 + Toyopa銘柄38万円分 + Somy銘柄57万円分 が口座内で管理されます
++    - なお、APIを叩くと __即時__ 売買が成立し資産に反映出来るものとします（受け渡し日などの概念はありません）
++- **各種注文**
++  - __新規注文__
++    - 初めて資金を投入することで、新規に口座開設が行われ資産運用が始まるもの
++  - __追加注文__
++    - 新規注文後に、追加で資金を投入すること
++  - __全売却注文__
++    - 運用中の銘柄を全て売却して現金にすること
++  - __リバランス注文__
++    - 運用されている資産を、サービスで保有する最適ポートフォリオに近づけるよう調整すること
++    - 例:
++      - 新規注文時には、最適ポートフォリオが `Toyopa銘柄30% + Somy銘柄70%` で構成される場合、顧客口座においても同様の資産配分となる
++      - その後にサービス上で最適ポートフォリオが `Toyopa銘柄50% + Somy銘柄50%` に更新される
++      - 更新後に、リバランス注文を入れると、顧客の口座も最新の最適ポートフォリオ通りの内容になる
++        - この場合、Toyopa銘柄が20%分購入され、Somy銘柄が20%分売却される
++
++### 実装について
++
++- Repository はモック実装としてin-memoryにデータを保持していますが、RDBを使う想定で回答してください。
++
++## 確認観点
++
++- 成果を出すこと
++- 成果物についての理解・責任を持つこと
++
++## 課題
++
++以下の課題をAIを用いて、あなた自身の言葉・実装で回答してください。
++
++1. API/アーキテクチャについてAIと協力しながら自分の言葉で説明してください
++    1. 全てのAPIについて説明する必要はなく、パッケージ構成やそれらの役割・関連について説明してください
++2. テストが全て通るようにしてください
++    1. まずは現状のテストを走らせて、どのような内容で落ちているかを説明してください
++    1. また、実装バグがあるため、テストコードは一切変更せず、AIと協力しながら実装を修正してください
++    1. その上で、修正内容について説明をしてください
++3. 全売却APIを実装してください
++    1. 全売却後の現金の取り扱いに関しての方針を決めてください
++    1. ストレッチ: 売却後の現金は銀行APIへ連携
++4. （部分売却APIを実装してください）
+diff --git a/src/application/usecase/order/rebalanceOrderUsecase.ts b/src/application/usecase/order/rebalanceOrderUsecase.ts
+new file mode 100644
+index 0000000..7d5c78c
+--- /dev/null
++++ b/src/application/usecase/order/rebalanceOrderUsecase.ts
+@@ -0,0 +1,31 @@
++import { AccountRepository } from "../../repository/accountRepository";
++import { PortfolioRepository } from "../../repository/portfolioRepository";
++import { UserId } from "../../../domain/userId";
++
++export interface RebalanceOrderUsecaseInput {
++  userId: UserId;
++}
++
++export class RebalanceOrderUsecaseException extends Error {}
++export class RebalanceUserNotFoundException extends RebalanceOrderUsecaseException {
++  constructor() {
++    super("user not found");
++  }
++}
++
++export class RebalanceOrderUsecase {
++  constructor(
++    private readonly accountRepository: AccountRepository,
++    private readonly portfolioRepository: PortfolioRepository,
++  ) {}
++
++  async run(input: RebalanceOrderUsecaseInput): Promise<void> {
++    const account = await this.accountRepository.find(input.userId);
++    if (account === undefined) {
++      throw new RebalanceUserNotFoundException();
++    }
++    const portfolio = await this.portfolioRepository.get();
++    const updated = account.rebalance(portfolio);
++    await this.accountRepository.upsert(input.userId, updated);
++  }
++}
+diff --git a/src/domain/account.ts b/src/domain/account.ts
+index 2746ef0..925acbd 100644
+--- a/src/domain/account.ts
++++ b/src/domain/account.ts
+@@ -58,4 +58,19 @@ export class Account {
+     const finalCash = totalAfter.minus(finalAmount);
+     return new Account(finalCash, allStocks);
+   }
++
++  // rebalance は保有資産を最適ポートフォリオの比率に近づける。
++  rebalance(portfolio: Portfolio): Account {
++    // XXX this implementation might not be correct
++    const investable = this.total();
++    const newStocks: Stock[] = [];
++    let usedForStocks = new Decimal(0);
++    for (const item of portfolio.items) {
++      const amt = floor0(investable.times(item.rate));
++      newStocks.push({ symbol: item.symbol, amountJpy: amt });
++      usedForStocks = usedForStocks.plus(amt);
++    }
++    const finalCash = investable.minus(usedForStocks);
++    return new Account(finalCash, newStocks);
++  }
+ }
+diff --git a/src/infrastructure/server/dummyServer.ts b/src/infrastructure/server/dummyServer.ts
+index 7e0ed65..7110b86 100644
+--- a/src/infrastructure/server/dummyServer.ts
++++ b/src/infrastructure/server/dummyServer.ts
+@@ -1,6 +1,7 @@
+ import { GetAssetUsecase } from "../../application/usecase/asset/getAssetUsecase";
+ import { AdditionalBuyOrderUsecase } from "../../application/usecase/order/additionalBuyOrderUsecase";
+ import { NewOrderUsecase } from "../../application/usecase/order/newOrderUsecase";
++import { RebalanceOrderUsecase } from "../../application/usecase/order/rebalanceOrderUsecase";
+ import { GetLatestPortfolioUsecase } from "../../application/usecase/portfolio/getLatestPortfolioUsecase";
+ import { UpdatePortfolioUsecase } from "../../application/usecase/portfolio/updatePortfolioUsecase";
+ import { AssetController } from "../../presentation/assetController";
+@@ -36,6 +37,7 @@ export class DummyServer {
+       accountRepository,
+       portfolioRepository,
+     );
++    const rebalanceOrderUsecase = new RebalanceOrderUsecase(accountRepository, portfolioRepository);
+ 
+     const assetController = new AssetController(getAssetUsecase);
+     const portfolioController = new PortfolioController(
+@@ -45,6 +47,7 @@ export class DummyServer {
+     const orderController = new OrderController(
+       newOrderUsecase,
+       additionalBuyOrderUsecase,
++      rebalanceOrderUsecase,
+     );
+ 
+     return new DummyServer(assetController, portfolioController, orderController);
+diff --git a/src/presentation/orderController.ts b/src/presentation/orderController.ts
+index e340e92..64934df 100644
+--- a/src/presentation/orderController.ts
++++ b/src/presentation/orderController.ts
+@@ -8,6 +8,10 @@ import {
+   NewOrderUsecase,
+   NewOrderUserAlreadyExistsException,
+ } from "../application/usecase/order/newOrderUsecase";
++import {
++  RebalanceOrderUsecase,
++  RebalanceUserNotFoundException,
++} from "../application/usecase/order/rebalanceOrderUsecase";
+ import { BadRequestException } from "./presentationException";
+ import { parseAmount, parseUserId } from "./presentationPreparation";
+ 
+@@ -21,10 +25,15 @@ export interface AdditionalOrderRequest {
+   amount: string;
+ }
+ 
++export interface RebalanceOrderRequest {
++  userId: string;
++}
++
+ export class OrderController {
+   constructor(
+     private readonly newOrderUsecase: NewOrderUsecase,
+     private readonly additionalBuyOrderUsecase: AdditionalBuyOrderUsecase,
++    private readonly rebalanceOrderUsecase: RebalanceOrderUsecase,
+   ) {}
+ 
+   async newOrder(req: NewOrderRequest): Promise<void> {
+@@ -58,4 +67,16 @@ export class OrderController {
+       throw e;
+     }
+   }
++
++  async rebalanceOrder(req: RebalanceOrderRequest): Promise<void> {
++    const uid = parseUserId(req.userId);
++    try {
++      await this.rebalanceOrderUsecase.run({ userId: uid });
++    } catch (e) {
++      if (e instanceof RebalanceUserNotFoundException) {
++        throw new BadRequestException("user has no live account");
++      }
++      throw e;
++    }
++  }
+ }
+diff --git a/tests/orderScenario.test.ts b/tests/orderScenario.test.ts
+new file mode 100644
+index 0000000..9dd223c
+--- /dev/null
++++ b/tests/orderScenario.test.ts
+@@ -0,0 +1,108 @@
++import Decimal from "decimal.js";
++import { randomUUID } from "node:crypto";
++import { beforeEach, describe, expect, it } from "vitest";
++import { DummyServer } from "../src/infrastructure/server/dummyServer.js";
++import { BadRequestException } from "../src/presentation/presentationException.js";
++
++describe("Investment Operation", () => {
++  let server: DummyServer;
++
++  // 失敗時に実測値がメッセージへ出るようにする(比較は Decimal 同士のまま)
++  const expectAmount = (label: string, actual: string, expected: string) => {
++    expect(
++      new Decimal(actual).equals(expected),
++      `${label}: got ${actual}, want ${expected}`,
++    ).toBe(true);
++  };
++
++  const totalOf = (asset: { cashAmount: string; stocks: { amountJpy: string }[] }) =>
++    asset.stocks
++      .map((e) => new Decimal(e.amountJpy))
++      .reduce((acc, v) => acc.plus(v), new Decimal(asset.cashAmount));
++
++  beforeEach(async () => {
++    server = DummyServer.default();
++    await server.portfolioController.updateOptimalPortfolio({
++      portfolios: [
++        { symbol: "Toyopa", rate: "0.40" },
++        { symbol: "Somy", rate: "0.60" },
++      ],
++    });
++  });
++
++  it("新規注文・追加注文・リバランスの一連の操作が正しく機能する", async () => {
++    const userId = randomUUID();
++
++    // Given: 存在しないユーザーで資産を取得しようとする
++    let notFound: unknown;
++    try {
++      await server.assetController.getAsset({ userId });
++    } catch (e) {
++      notFound = e;
++    }
++    // Then: BadRequestException が返される
++    expect(notFound instanceof BadRequestException).toBe(true);
++
++    // When: 最適ポートフォリオを Toyopa=40%, Somy=60% に更新する
++    await server.portfolioController.updateOptimalPortfolio({
++      portfolios: [
++        { symbol: "Toyopa", rate: "0.40" },
++        { symbol: "Somy", rate: "0.60" },
++      ],
++    });
++
++    // And: 新規注文を 100,000 円で注文する
++    await server.orderController.newOrder({ userId, amount: "100000" });
++
++    const asset1 = await server.assetController.getAsset({ userId });
++    expect(new Set(asset1.stocks.map((e) => e.symbol))).toEqual(new Set(["Toyopa", "Somy"]));
++    const total1 = totalOf(asset1);
++    expect(total1.minus(100000).abs().lessThanOrEqualTo(2)).toBe(true);
++
++    // Then: 現金比率5%に対して現金が 5,000円、最適ポートフォリオに基づき Toyopa の保有額が 38,000 円(40%)、Somy の保有額が 57,000 円(60%) となる
++    // cash = floor0(100000 * 0.05) = 5000, investable = 100000 - 5000 = 95000
++    const asset1Toyopa = asset1.stocks.find((e) => e.symbol === "Toyopa")!;
++    const asset1Somy = asset1.stocks.find((e) => e.symbol === "Somy")!;
++    expectAmount("asset1 Toyopa amount", asset1Toyopa.amountJpy, "38000"); // floor0(95000 * 0.40) = 38000
++    expectAmount("asset1 Somy amount", asset1Somy.amountJpy, "57000");     // floor0(95000 * 0.60) = 57000
++    expectAmount("asset1 cash", asset1.cashAmount, "5000");                // 100000 - 38000 - 57000
++
++    // When: 追加注文を 100,000 円で注文する
++    await server.orderController.additionalOrder({ userId, amount: "100000" });
++
++    // Then: 資産合計が約 200,000 円になる
++    const asset2 = await server.assetController.getAsset({ userId });
++    const total2 = totalOf(asset2);
++    expect(total2.minus(200000).abs().lessThanOrEqualTo(4)).toBe(true);
++
++    // And: 現金比率5%に対して現金が 10,000円、最適ポートフォリオに基づき Toyopa の保有額が 76,000 円(40%)、Somy の保有額が 114,000 円(60%) となる
++    // totalAfter = 200000; investable = 200000 - floor0(200000 * 0.05) = 190000
++    const asset2Toyopa = asset2.stocks.find((e) => e.symbol === "Toyopa")!;
++    const asset2Somy = asset2.stocks.find((e) => e.symbol === "Somy")!;
++    expectAmount("asset2 Toyopa amount", asset2Toyopa.amountJpy, "76000");  // floor0(190000 * 0.40) = 76000
++    expectAmount("asset2 Somy amount", asset2Somy.amountJpy, "114000");     // floor0(190000 * 0.60) = 114000
++    expectAmount("asset2 cash", asset2.cashAmount, "10000");                // 200000 - 76000 - 114000
++
++    // When: 最適ポートフォリオを Toyopa=10%, Somy=90% に変更して、リバランス注文をする
++    await server.portfolioController.updateOptimalPortfolio({
++      portfolios: [
++        { symbol: "Toyopa", rate: "0.10" },
++        { symbol: "Somy", rate: "0.90" },
++      ],
++    });
++    await server.orderController.rebalanceOrder({ userId });
++
++    // Then: リバランス後も資産合計がほぼ変わらない
++    const asset3 = await server.assetController.getAsset({ userId });
++    const total3 = totalOf(asset3);
++    expect(total3.minus(total2).abs().lessThanOrEqualTo(4)).toBe(true);
++
++    // And: 現金比率5%に対して現金が 10,000円、最適ポートフォリオに基づき Toyopa の保有額が 19,000 円(10%)、Somy の保有額が 171,000 円(90%) となる
++    // total = 200000; investable = 200000 - floor0(200000 * 0.05) = 190000
++    const asset3Toyopa = asset3.stocks.find((e) => e.symbol === "Toyopa")!;
++    const asset3Somy = asset3.stocks.find((e) => e.symbol === "Somy")!;
++    expectAmount("asset3 Toyopa amount", asset3Toyopa.amountJpy, "19000");  // floor0(190000 * 0.10) = 19000
++    expectAmount("asset3 Somy amount", asset3Somy.amountJpy, "171000");     // floor0(190000 * 0.90) = 171000
++    expectAmount("asset3 cash", asset3.cashAmount, "10000");                // 200000 - 19000 - 171000
++  });
++});

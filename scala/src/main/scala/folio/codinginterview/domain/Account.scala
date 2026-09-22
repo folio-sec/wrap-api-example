@@ -32,20 +32,6 @@ final case class Account(cash: BigDecimal, stocks: Seq[Stock]) {
     val finalCash = totalAfter - finalAmount
     Account(cash = finalCash, stocks = allStocks)
   }
-
-  /** 保有資産を最適ポートフォリオの比率に近づける。 */
-  def rebalance(portfolio: Portfolio): Account = {
-    // XXX this implementation might not be correct
-    val investable = total
-    var usedForStocks = BigDecimal(0)
-    val newStocks = portfolio.items.map { item =>
-      val amt = floor0(investable * item.rate)
-      usedForStocks += amt
-      Stock(item.symbol, amt)
-    }
-    val finalCash = investable - usedForStocks
-    Account(cash = finalCash, stocks = newStocks)
-  }
 }
 
 object Account {

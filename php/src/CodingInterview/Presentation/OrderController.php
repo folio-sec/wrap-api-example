@@ -12,9 +12,6 @@ use Folio\CodingInterview\Application\Usecase\Order\NewOrderAmountTooSmallExcept
 use Folio\CodingInterview\Application\Usecase\Order\NewOrderUserAlreadyExistsException;
 use Folio\CodingInterview\Application\Usecase\Order\NewOrderUsecase;
 use Folio\CodingInterview\Application\Usecase\Order\NewOrderUsecaseInput;
-use Folio\CodingInterview\Application\Usecase\Order\RebalanceOrderUserNotFoundException;
-use Folio\CodingInterview\Application\Usecase\Order\RebalanceOrderUsecase;
-use Folio\CodingInterview\Application\Usecase\Order\RebalanceOrderUsecaseInput;
 
 final class NewOrderRequest
 {
@@ -32,11 +29,6 @@ final class AdditionalOrderRequest
     ) {}
 }
 
-final class RebalanceOrderRequest
-{
-    public function __construct(public readonly string $userId) {}
-}
-
 final class OrderController
 {
     use PresentationPreparation;
@@ -44,7 +36,6 @@ final class OrderController
     public function __construct(
         private readonly NewOrderUsecase $newOrderUsecase,
         private readonly AdditionalBuyOrderUsecase $additionalBuyOrderUsecase,
-        private readonly RebalanceOrderUsecase $rebalanceOrderUsecase,
     ) {}
 
     public function newOrder(NewOrderRequest $req): void
@@ -73,13 +64,4 @@ final class OrderController
         }
     }
 
-    public function rebalanceOrder(RebalanceOrderRequest $req): void
-    {
-        $uid = $this->parseUserId($req->userId);
-        try {
-            $this->rebalanceOrderUsecase->run(new RebalanceOrderUsecaseInput($uid));
-        } catch (RebalanceOrderUserNotFoundException $e) {
-            throw new BadRequestException('user has no live account');
-        }
-    }
 }

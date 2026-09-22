@@ -1,8 +1,60 @@
 # Wrap API Example
 
+## files types
+
+| Path | Role |
+| --- | --- |
+| `<language>/` | template |
+| `patches/<language>.patch` | interview patch |
+| `interview/manifests/<language>.txt` | patch editable files |
+| `interview/shared/README.challenge.md` | shared patch |
+
+## Development
+
+When changing `interview/shared/README.challenge.md` or template files.
+
+```sh
+for language in golang java17 java8 php python ruby scala typescript; do
+  ./scripts/generate-interview-patch.sh "$language"
+done
+```
+
+When changing interview implementations, do followings
+
+```sh
+work="$(mktemp -d)/golang"
+cp -R golang "$work"
+./scripts/apply-interview-patch.sh golang "$work"
+# edit "$work"
+./scripts/generate-interview-patch.sh golang "$work"
+# when adding new file, edit interview/manifests/<language>.txt
+```
+
 ## Release
 
 Kick the [release action](https://github.com/folio-sec/wrap-api-example/actions/workflows/release.yml) manually, then release.
+
+- `<language>-template.zip`
+- `<language>.patch`
+- `<language>.zip`
+
+## On Interview
+
+- macOS / Linux / etc
+
+```sh
+curl -fsSL "https://github.com/folio-sec/wrap-api-example/releases/download/<tag>/<language>.patch" | patch -p1
+```
+
+Windows(PowerShell):
+
+```powershell
+curl.exe -fsSL "https://github.com/folio-sec/wrap-api-example/releases/download/<tag>/<language>.patch" -o interview.patch
+git apply interview.patch
+Remove-Item interview.patch
+```
+
+Alternative, use full zip.
 
 ### DCO Sign-Off Methods
 

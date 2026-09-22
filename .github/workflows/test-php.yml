@@ -20,12 +20,22 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Verify interview template and patch
+        run: '"${GITHUB_WORKSPACE}/scripts/verify-interview-patch.sh" php .'
       - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
         with:
           php-version: '8.5'
       - run: composer install --no-interaction --prefer-dist
-      - run: find src -name '*.php' -exec php -l {} +
-      - run: ./vendor/bin/phpunit tests/OptimalPortfolioScenarioTest.php
+      - name: Lint template
+        run: find src -name '*.php' -exec php -l {} +
+      - name: Test template portfolio scenario
+        run: ./vendor/bin/phpunit tests/OptimalPortfolioScenarioTest.php
+      - name: Apply interview patch
+        run: '"${GITHUB_WORKSPACE}/scripts/apply-interview-patch.sh" php .'
+      - name: Lint assembled interview
+        run: find src -name '*.php' -exec php -l {} +
+      - name: Test assembled portfolio scenario
+        run: ./vendor/bin/phpunit tests/OptimalPortfolioScenarioTest.php
       - name: Order scenario test should fail at the rebalance assertion
         run: |
           "${GITHUB_WORKSPACE}/.github/scripts/expect-order-scenario-failure.sh" \

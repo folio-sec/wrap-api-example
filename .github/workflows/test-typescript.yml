@@ -23,14 +23,24 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Verify interview template and patch
+        run: '"${GITHUB_WORKSPACE}/scripts/verify-interview-patch.sh" typescript .'
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
           cache-dependency-path: typescript/package-lock.json
       - run: npm ci
-      - run: npm run build
-      - run: npx vitest run tests/optimalPortfolioScenario.test.ts
+      - name: Build template
+        run: npm run build
+      - name: Test template portfolio scenario
+        run: npx vitest run tests/optimalPortfolioScenario.test.ts
+      - name: Apply interview patch
+        run: '"${GITHUB_WORKSPACE}/scripts/apply-interview-patch.sh" typescript .'
+      - name: Build assembled interview
+        run: npm run build
+      - name: Test assembled portfolio scenario
+        run: npx vitest run tests/optimalPortfolioScenario.test.ts
       - name: Order scenario test should fail at the rebalance assertion
         run: |
           "${GITHUB_WORKSPACE}/.github/scripts/expect-order-scenario-failure.sh" \

@@ -7,7 +7,64 @@ permissions:
   contents: read
 
 jobs:
+  golang:
+    name: Verify Go
+    uses: ./.github/workflows/test-go.yml
+    permissions:
+      contents: read
+
+  java17:
+    name: Verify Java 17
+    uses: ./.github/workflows/test-java17.yml
+    permissions:
+      contents: read
+
+  java8:
+    name: Verify Java 8
+    uses: ./.github/workflows/test-java8.yml
+    permissions:
+      contents: read
+
+  php:
+    name: Verify PHP
+    uses: ./.github/workflows/test-php.yml
+    permissions:
+      contents: read
+
+  python:
+    name: Verify Python
+    uses: ./.github/workflows/test-python.yml
+    permissions:
+      contents: read
+
+  ruby:
+    name: Verify Ruby
+    uses: ./.github/workflows/test-ruby.yml
+    permissions:
+      contents: read
+
+  scala:
+    name: Verify Scala
+    uses: ./.github/workflows/test-scala.yml
+    permissions:
+      contents: read
+
+  typescript:
+    name: Verify TypeScript
+    uses: ./.github/workflows/test-typescript.yml
+    permissions:
+      contents: read
+
   package:
+    needs:
+      - golang
+      - java17
+      - java8
+      - php
+      - python
+      - ruby
+      - scala
+      - typescript
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -17,20 +74,42 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Create zip archives
-        run: |
-          for dir in golang java17 java8 php python ruby scala typescript; do
-            zip -r "${dir}.zip" "${dir}/"
-          done
+      - name: Build template, patch, and assembled assets
+        run: ./scripts/build-release-assets.sh release-assets
         shell: bash
 
       - name: Create release and upload assets
         run: |
           TAG="release-$(date +%Y%m%d-%H%M%S)"
+          NOTES_FILE="$(mktemp)"
+          {
+            echo "Auto-generated interview assets."
+            echo
+            echo "- \`<language>-template.zip\`: 面接前に事前共有されるテンプレートファイル"
+            echo "- \`<language>.patch\`: 面接時に適用されるパッチファイル"
+            echo "- \`<language>.zip\`: テンプレートにパッチが適用されたファイル（パッチ適用が難しい場合に利用）"
+            echo
+            echo "パッチの適用方法について:"
+            echo
+            echo "\`\`\`bash"
+            echo "curl -fsSL \"https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/<language>.patch\" | patch -p1"
+            echo "\`\`\`"
+            echo
+            echo "Windows PowerShell環境では、以下のコマンドを利用:"
+            echo
+            echo '```powershell'
+            echo "curl.exe -fsSL \"https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/<language>.patch\" -o interview.patch"
+            echo 'git apply interview.patch'
+            echo 'Remove-Item interview.patch'
+            echo '```'
+            echo
+            echo "patch適用が難しい場合には、 \`<language>.zip\` を利用すること"
+            echo
+          } > "$NOTES_FILE"
           gh release create "$TAG" \
             --title "Implementations $TAG" \
-            --notes "Auto-generated release of implementation samples" \
-            golang.zip java17.zip java8.zip php.zip python.zip ruby.zip scala.zip typescript.zip
+            --notes-file "$NOTES_FILE" \
+            release-assets/*
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash

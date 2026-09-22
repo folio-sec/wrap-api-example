@@ -85,21 +85,3 @@ func (a Account) AddFunds(amount decimal.Decimal, portfolio Portfolio) Account {
 
 	return Account{Cash: finalCash, Stocks: allStocks}
 }
-
-// Rebalance は保有資産を最適ポートフォリオの比率に近づける。
-func (a Account) Rebalance(portfolio Portfolio) Account {
-	// XXX this implementation might not be correct
-	investable := a.Total()
-
-	newStocks := make([]Stock, 0, len(portfolio.Items))
-	usedForStocks := decimal.Zero
-	for _, item := range portfolio.Items {
-		amt := floor0(investable.Mul(item.Rate))
-		newStocks = append(newStocks, Stock{Symbol: item.Symbol, AmountJpy: amt})
-		usedForStocks = usedForStocks.Add(amt)
-	}
-
-	finalCash := investable.Sub(usedForStocks)
-
-	return Account{Cash: finalCash, Stocks: newStocks}
-}

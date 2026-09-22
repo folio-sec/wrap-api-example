@@ -99,21 +99,4 @@ public final class Account {
 
         return new Account(finalCash, allStocks);
     }
-
-    // 保有資産を最適ポートフォリオの比率に近づける。
-    public Account rebalance(Portfolio portfolio) {
-        // XXX this implementation might not be correct
-        BigDecimal investable = this.total();
-
-        List<Stock> newStocks = new ArrayList<>();
-        BigDecimal usedForStocks = BigDecimal.ZERO;
-        for (PortfolioItem item : portfolio.items()) {
-            BigDecimal amt = floor0(investable.multiply(item.rate()));
-            newStocks.add(new Stock(item.symbol(), amt));
-            usedForStocks = usedForStocks.add(amt);
-        }
-
-        BigDecimal finalCash = investable.subtract(usedForStocks);
-        return new Account(finalCash, newStocks);
-    }
 }

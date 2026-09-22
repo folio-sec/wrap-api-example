@@ -1,0 +1,297 @@
+diff --git a/README.md b/README.md
+index 8e16ff1..10f817c 100644
+--- a/README.md
++++ b/README.md
+@@ -17,3 +17,67 @@ bundle install
+ # test
+ bundle exec rspec
+ ```
++
++## サービス概要
++
++このアプリケーションは、FOLIOで提供されるロボアドバイザーサービスを模倣したバックエンドAPIサーバーです。
++
++- ロボアドバイザーは、気軽に投資が出来るサービスとなっています
++- お客様は「10万円投資がしたい」となったら、10万円を新規注文で入れていただくと投資が始められます
++- どういった銘柄を運用するかは、お客様ではなく、サービスで管理されたポートフォリオに基づき運用されます
++
++### サービスについて
++
++- **顧客の口座**
++  - 初めて資金を投入することを新規注文と呼び、この注文を入れることで口座が開き資産運用が始まります
++  - 口座の中で資産を管理することになります
++- **顧客口座の資産**
++  - 顧客は現金と銘柄及びその資産額を口座内で保有します
++    - 簡略化のために、顧客は銘柄ごとに保有額（円）を保持します（例: Toyopa銘柄を 500 円分保有する）
++    - 本来は、口座には株数が保持されますが、各銘柄を資産額（円）で直接保有するものとします（市場価格の概念も取り扱いません）
++  - また、総資産の内、5%は常に現金で保持します
++    - 例: 総資産100万円のうち5万円（5%）を現金として保持し、残り95万円分をいくつかの銘柄で保有する
++- **最適ポートフォリオ**
++  - サービスで管理する、保有銘柄を100%配分した組み合わせのことを最適ポートフォリオと呼びます
++    - 例: 合計100%のうち、Toyopa銘柄を40%・Somy銘柄を60%の最適ポートフォリオが現在設定されている
++  - 購入時・売却時・リバランス時には、注文後の資産比率が __現在の最適ポートフォリオ__ に近づける形での調整を実施します
++    - 例: 先のポートフォリオ例の場合、100万円を新規注文した場合、 5万円の現金 + Toyopa銘柄38万円分 + Somy銘柄57万円分 が口座内で管理されます
++    - なお、APIを叩くと __即時__ 売買が成立し資産に反映出来るものとします（受け渡し日などの概念はありません）
++- **各種注文**
++  - __新規注文__
++    - 初めて資金を投入することで、新規に口座開設が行われ資産運用が始まるもの
++  - __追加注文__
++    - 新規注文後に、追加で資金を投入すること
++  - __全売却注文__
++    - 運用中の銘柄を全て売却して現金にすること
++  - __リバランス注文__
++    - 運用されている資産を、サービスで保有する最適ポートフォリオに近づけるよう調整すること
++    - 例:
++      - 新規注文時には、最適ポートフォリオが `Toyopa銘柄30% + Somy銘柄70%` で構成される場合、顧客口座においても同様の資産配分となる
++      - その後にサービス上で最適ポートフォリオが `Toyopa銘柄50% + Somy銘柄50%` に更新される
++      - 更新後に、リバランス注文を入れると、顧客の口座も最新の最適ポートフォリオ通りの内容になる
++        - この場合、Toyopa銘柄が20%分購入され、Somy銘柄が20%分売却される
++
++### 実装について
++
++- Repository はモック実装としてin-memoryにデータを保持していますが、RDBを使う想定で回答してください。
++
++## 確認観点
++
++- 成果を出すこと
++- 成果物についての理解・責任を持つこと
++
++## 課題
++
++以下の課題をAIを用いて、あなた自身の言葉・実装で回答してください。
++
++1. API/アーキテクチャについてAIと協力しながら自分の言葉で説明してください
++    1. 全てのAPIについて説明する必要はなく、パッケージ構成やそれらの役割・関連について説明してください
++2. テストが全て通るようにしてください
++    1. まずは現状のテストを走らせて、どのような内容で落ちているかを説明してください
++    1. また、実装バグがあるため、テストコードは一切変更せず、AIと協力しながら実装を修正してください
++    1. その上で、修正内容について説明をしてください
++3. 全売却APIを実装してください
++    1. 全売却後の現金の取り扱いに関しての方針を決めてください
++    1. ストレッチ: 売却後の現金は銀行APIへ連携
++4. （部分売却APIを実装してください）
+diff --git a/lib/coding_interview/application/usecase/order/rebalance_order_usecase.rb b/lib/coding_interview/application/usecase/order/rebalance_order_usecase.rb
+new file mode 100644
+index 0000000..18931e8
+--- /dev/null
++++ b/lib/coding_interview/application/usecase/order/rebalance_order_usecase.rb
+@@ -0,0 +1,28 @@
++module CodingInterview
++  module Application
++    module Usecase
++      module Order
++        RebalanceOrderUsecaseInput = Struct.new(:user_id)
++
++        class RebalanceOrderUsecaseException < StandardError; end
++        class RebalanceUserNotFound < RebalanceOrderUsecaseException; end
++
++        class RebalanceOrderUsecase
++          def initialize(account_repository, portfolio_repository)
++            @account_repository = account_repository
++            @portfolio_repository = portfolio_repository
++          end
++
++          def run(input)
++            account = @account_repository.find(input.user_id)
++            raise RebalanceUserNotFound if account.nil?
++
++            portfolio = @portfolio_repository.get
++            updated = account.rebalance(portfolio)
++            @account_repository.upsert(input.user_id, updated)
++          end
++        end
++      end
++    end
++  end
++end
+diff --git a/lib/coding_interview/domain/account.rb b/lib/coding_interview/domain/account.rb
+index 41fff55..9b4423f 100644
+--- a/lib/coding_interview/domain/account.rb
++++ b/lib/coding_interview/domain/account.rb
+@@ -56,6 +56,21 @@ def add_funds(amount, portfolio)
+         Account.new(final_cash, all_stocks)
+       end
+ 
++      # rebalance は保有資産を最適ポートフォリオの比率に近づける。
++      def rebalance(portfolio)
++        # XXX this implementation might not be correct
++        investable = total
++
++        used_for_stocks = BigDecimal("0")
++        new_stocks = portfolio.items.map do |item|
++          amt = Account.floor0(investable * item.rate)
++          used_for_stocks += amt
++          Stock.new(item.symbol, amt)
++        end
++
++        final_cash = investable - used_for_stocks
++        Account.new(final_cash, new_stocks)
++      end
+     end
+   end
+ end
+diff --git a/lib/coding_interview/infrastructure/server/dummy_server.rb b/lib/coding_interview/infrastructure/server/dummy_server.rb
+index 0eb2bab..224875f 100644
+--- a/lib/coding_interview/infrastructure/server/dummy_server.rb
++++ b/lib/coding_interview/infrastructure/server/dummy_server.rb
+@@ -5,6 +5,7 @@
+ require_relative "../../application/usecase/portfolio/update_portfolio_usecase"
+ require_relative "../../application/usecase/order/new_order_usecase"
+ require_relative "../../application/usecase/order/additional_buy_order_usecase"
++require_relative "../../application/usecase/order/rebalance_order_usecase"
+ require_relative "../../presentation/asset_controller"
+ require_relative "../../presentation/portfolio_controller"
+ require_relative "../../presentation/order_controller"
+@@ -30,10 +31,11 @@ def self.default
+           update_portfolio_usecase = Application::Usecase::Portfolio::UpdatePortfolioUsecase.new(portfolio_repository)
+           new_order_usecase = Application::Usecase::Order::NewOrderUsecase.new(account_repository, portfolio_repository)
+           additional_buy_order_usecase = Application::Usecase::Order::AdditionalBuyOrderUsecase.new(account_repository, portfolio_repository)
++          rebalance_order_usecase = Application::Usecase::Order::RebalanceOrderUsecase.new(account_repository, portfolio_repository)
+ 
+           asset_controller = Presentation::AssetController.new(get_asset_usecase)
+           portfolio_controller = Presentation::PortfolioController.new(get_latest_portfolio_usecase, update_portfolio_usecase)
+-          order_controller = Presentation::OrderController.new(new_order_usecase, additional_buy_order_usecase)
++          order_controller = Presentation::OrderController.new(new_order_usecase, additional_buy_order_usecase, rebalance_order_usecase)
+ 
+           new(asset_controller, portfolio_controller, order_controller)
+         end
+diff --git a/lib/coding_interview/presentation/order_controller.rb b/lib/coding_interview/presentation/order_controller.rb
+index e637d73..5bf71a9 100644
+--- a/lib/coding_interview/presentation/order_controller.rb
++++ b/lib/coding_interview/presentation/order_controller.rb
+@@ -2,18 +2,21 @@
+ require_relative "presentation_preparation"
+ require_relative "../application/usecase/order/new_order_usecase"
+ require_relative "../application/usecase/order/additional_buy_order_usecase"
++require_relative "../application/usecase/order/rebalance_order_usecase"
+ 
+ module CodingInterview
+   module Presentation
+     NewOrderRequest = Struct.new(:user_id, :amount)
+     AdditionalOrderRequest = Struct.new(:user_id, :amount)
++    RebalanceOrderRequest = Struct.new(:user_id)
+ 
+     class OrderController
+       include PresentationPreparation
+ 
+-      def initialize(new_order_usecase, additional_buy_order_usecase)
++      def initialize(new_order_usecase, additional_buy_order_usecase, rebalance_order_usecase)
+         @new_order_usecase = new_order_usecase
+         @additional_buy_order_usecase = additional_buy_order_usecase
++        @rebalance_order_usecase = rebalance_order_usecase
+       end
+ 
+       def new_order(req)
+@@ -40,6 +43,14 @@ def additional_order(req)
+         raise BadRequestException.new("amount is too small")
+       end
+ 
++      def rebalance_order(req)
++        uid = parse_user_id(req.user_id)
++        @rebalance_order_usecase.run(
++          Application::Usecase::Order::RebalanceOrderUsecaseInput.new(uid)
++        )
++      rescue Application::Usecase::Order::RebalanceUserNotFound
++        raise BadRequestException.new("user has no live account")
++      end
+     end
+   end
+ end
+diff --git a/spec/order_scenario_spec.rb b/spec/order_scenario_spec.rb
+new file mode 100644
+index 0000000..0ea2296
+--- /dev/null
++++ b/spec/order_scenario_spec.rb
+@@ -0,0 +1,92 @@
++require "bigdecimal"
++require "securerandom"
++require "set"
++
++RSpec.describe "Investment Operation" do
++  let(:server) { CodingInterview::Infrastructure::Server::DummyServer.default }
++  let(:ac) { server.asset_controller }
++  let(:pc) { server.portfolio_controller }
++  let(:oc) { server.order_controller }
++
++  before do
++    pc.update_optimal_portfolio(
++      CodingInterview::Presentation::UpdateOptimalPortfolioRequest.new([
++        CodingInterview::Presentation::PortfolioItemDto.new("Toyopa", "0.40"),
++        CodingInterview::Presentation::PortfolioItemDto.new("Somy", "0.60")
++      ])
++    )
++  end
++
++  it "新規注文・追加注文・リバランスの一連の操作が正しく機能する" do
++    user_id = SecureRandom.uuid
++
++    # Given: 存在しないユーザーで資産を取得しようとする
++    expect {
++      ac.get_asset(CodingInterview::Presentation::GetAssetRequest.new(user_id))
++    }.to raise_error(CodingInterview::Presentation::BadRequestException)
++    # Then: BadRequestException が返される
++
++    # When: 最適ポートフォリオを Toyopa=40%, Somy=60% に更新する
++    pc.update_optimal_portfolio(
++      CodingInterview::Presentation::UpdateOptimalPortfolioRequest.new([
++        CodingInterview::Presentation::PortfolioItemDto.new("Toyopa", "0.40"),
++        CodingInterview::Presentation::PortfolioItemDto.new("Somy", "0.60")
++      ])
++    )
++
++    # And: 新規注文を 100,000 円で注文する
++    oc.new_order(
++      CodingInterview::Presentation::NewOrderRequest.new(user_id, "100000")
++    )
++
++    asset1 = ac.get_asset(CodingInterview::Presentation::GetAssetRequest.new(user_id))
++    expect(asset1.stocks.map(&:symbol).to_set).to eq(Set["Toyopa", "Somy"])
++    total1 = BigDecimal(asset1.cash_amount) + asset1.stocks.inject(BigDecimal("0")) { |a, e| a + BigDecimal(e.amount_jpy) }
++    expect((total1 - BigDecimal("100000")).abs).to be <= BigDecimal("2")
++
++    # Then: 現金比率5%に対して現金が 5,000円、最適ポートフォリオに基づき Toyopa の保有額が 38,000 円(40%)、Somy の保有額が 57,000 円(60%) となる
++    asset1_toyopa = asset1.stocks.find { |e| e.symbol == "Toyopa" }
++    asset1_somy = asset1.stocks.find { |e| e.symbol == "Somy" }
++    expect(BigDecimal(asset1_toyopa.amount_jpy)).to eq(BigDecimal("38000"))
++    expect(BigDecimal(asset1_somy.amount_jpy)).to eq(BigDecimal("57000"))
++    expect(BigDecimal(asset1.cash_amount)).to eq(BigDecimal("5000"))
++
++    # When: 追加注文を 100,000 円で注文する
++    oc.additional_order(
++      CodingInterview::Presentation::AdditionalOrderRequest.new(user_id, "100000")
++    )
++
++    # Then: 資産合計が約 200,000 円になる
++    asset2 = ac.get_asset(CodingInterview::Presentation::GetAssetRequest.new(user_id))
++    total2 = BigDecimal(asset2.cash_amount) + asset2.stocks.inject(BigDecimal("0")) { |a, e| a + BigDecimal(e.amount_jpy) }
++    expect((total2 - BigDecimal("200000")).abs).to be <= BigDecimal("4")
++
++    # And: 現金比率5%に対して現金が 10,000円、最適ポートフォリオに基づき Toyopa の保有額が 76,000 円(40%)、Somy の保有額が 114,000 円(60%) となる
++    asset2_toyopa = asset2.stocks.find { |e| e.symbol == "Toyopa" }
++    asset2_somy = asset2.stocks.find { |e| e.symbol == "Somy" }
++    expect(BigDecimal(asset2_toyopa.amount_jpy)).to eq(BigDecimal("76000"))
++    expect(BigDecimal(asset2_somy.amount_jpy)).to eq(BigDecimal("114000"))
++    expect(BigDecimal(asset2.cash_amount)).to eq(BigDecimal("10000"))
++
++    # When: 最適ポートフォリオを Toyopa=10%, Somy=90% に変更して、リバランス注文をする
++    pc.update_optimal_portfolio(
++      CodingInterview::Presentation::UpdateOptimalPortfolioRequest.new([
++        CodingInterview::Presentation::PortfolioItemDto.new("Toyopa", "0.10"),
++        CodingInterview::Presentation::PortfolioItemDto.new("Somy", "0.90")
++      ])
++    )
++    oc.rebalance_order(CodingInterview::Presentation::RebalanceOrderRequest.new(user_id))
++
++    # Then: リバランス後も資産合計がほぼ変わらない
++    asset3 = ac.get_asset(CodingInterview::Presentation::GetAssetRequest.new(user_id))
++    total3 = BigDecimal(asset3.cash_amount) + asset3.stocks.inject(BigDecimal("0")) { |a, e| a + BigDecimal(e.amount_jpy) }
++    expect((total3 - total2).abs).to be <= BigDecimal("4")
++
++    # And: 現金比率5%に対して現金が 10,000円、最適ポートフォリオに基づき Toyopa の保有額が 19,000 円(10%)、Somy の保有額が 171,000 円(90%) となる
++    asset3_toyopa = asset3.stocks.find { |e| e.symbol == "Toyopa" }
++    asset3_somy = asset3.stocks.find { |e| e.symbol == "Somy" }
++    expect(BigDecimal(asset3_toyopa.amount_jpy)).to eq(BigDecimal("19000"))
++    expect(BigDecimal(asset3_somy.amount_jpy)).to eq(BigDecimal("171000"))
++    expect(BigDecimal(asset3.cash_amount)).to eq(BigDecimal("10000"))
++  end
++end
