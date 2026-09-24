@@ -16,4 +16,8 @@ bundle install
 
 # test
 bundle exec rspec
+
+# 事前コマンド確認
+command -v curl
+command -v patch
 ```

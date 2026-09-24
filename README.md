@@ -34,22 +34,40 @@ cp -R golang "$work"
 
 Kick the [release action](https://github.com/folio-sec/wrap-api-example/actions/workflows/release.yml) manually, then release.
 
-- `<language>-template.zip`
-- `<language>.patch`
-- `<language>.zip`
+Each release has a sequential tag (`v1`, `v2`, ...). Its assets are:
+
+- `<language>-template-vN.zip` — share this before the interview
+- `<language>-vN.patch` — apply this version's patch during the interview
+- `<language>-vN.zip` — completed alternative if applying the patch is difficult
+
+The extracted template's README shows its release tag in the title. Its
+development instructions include test commands and a check for the commands
+used to apply the patch. The patch command is shared during the interview.
+The tag is also recorded in `<language>/TEMPLATE_VERSION` and the ZIP filename.
+On each new release, published interview releases older than 100 days are
+removed. Release tags are retained so version numbers are never reused.
 
 ## On Interview
 
-- macOS / Linux / etc
+In the extracted `<language>` directory, confirm the release tag in README.md
+and use the patch from that same release. `TEMPLATE_VERSION` contains the same
+tag. For templates distributed before versioning, use the release link that
+was shared with the template.
+
+macOS / Linux / etc:
 
 ```sh
-curl -fsSL "https://github.com/folio-sec/wrap-api-example/releases/download/<tag>/<language>.patch" | patch -p1
+version="$(cat TEMPLATE_VERSION)"
+curl -fsSL "https://github.com/folio-sec/wrap-api-example/releases/download/${version}/<language>-${version}.patch" -o interview.patch
+patch -p1 < interview.patch
+rm interview.patch
 ```
 
 Windows(PowerShell):
 
 ```powershell
-curl.exe -fsSL "https://github.com/folio-sec/wrap-api-example/releases/download/<tag>/<language>.patch" -o interview.patch
+$version = (Get-Content TEMPLATE_VERSION).Trim()
+curl.exe -fsSL "https://github.com/folio-sec/wrap-api-example/releases/download/$version/<language>-$version.patch" -o interview.patch
 git apply interview.patch
 Remove-Item interview.patch
 ```

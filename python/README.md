@@ -18,6 +18,10 @@ pip install -e ".[dev]"
 
 # test
 pytest -v
+
+# 事前コマンド確認
+command -v curl
+command -v patch
 ```
 
 **Windows (PowerShell):**
@@ -34,4 +38,8 @@ pip install -e ".[dev]"
 
 # test
 pytest -v
+
+# 事前コマンド確認
+Get-Command curl.exe -ErrorAction Stop
+Get-Command git -ErrorAction Stop
 ```

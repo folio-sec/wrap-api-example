@@ -3,6 +3,10 @@ name: release
 on:
   workflow_dispatch:
 
+concurrency:
+  group: interview-release
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
@@ -74,36 +78,53 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Choose the next release version
+        id: version
+        run: |
+          latest_version="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/tags?per_page=100" \
+            --jq '.[].name' | sed -nE 's/^v([0-9]+)$/\1/p' | sort -n | tail -n 1)"
+          version="v$(( ${latest_version:-0} + 1 ))"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+
       - name: Build template, patch, and assembled assets
-        run: ./scripts/build-release-assets.sh release-assets
+        run: ./scripts/build-release-assets.sh release-assets "${{ steps.version.outputs.version }}"
         shell: bash
 
       - name: Create release and upload assets
         run: |
-          TAG="release-$(date +%Y%m%d-%H%M%S)"
+          TAG="${{ steps.version.outputs.version }}"
           NOTES_FILE="$(mktemp)"
           {
             echo "Auto-generated interview assets."
             echo
-            echo "- \`<language>-template.zip\`: 面接前に事前共有されるテンプレートファイル"
-            echo "- \`<language>.patch\`: 面接時に適用されるパッチファイル"
-            echo "- \`<language>.zip\`: テンプレートにパッチが適用されたファイル（パッチ適用が難しい場合に利用）"
+            echo "- \`<language>-template-${TAG}.zip\`: 面接前に事前共有されるテンプレートファイル"
+            echo "- \`<language>-${TAG}.patch\`: 面接時に適用されるパッチファイル"
+            echo "- \`<language>-${TAG}.zip\`: テンプレートにパッチが適用されたファイル（パッチ適用が難しい場合、過去形式の試験時利用）"
+            echo
+            echo "面接当日は、配布済みテンプレートの README.md に記載された release tag を確認し、"
+            echo "同じ tag の release から patch を取得して適用してください。"
+            echo "版は展開後の \`<language>/TEMPLATE_VERSION\` でも確認できます。"
             echo
             echo "パッチの適用方法について:"
             echo
             echo "\`\`\`bash"
-            echo "curl -fsSL \"https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/<language>.patch\" | patch -p1"
+            echo "curl -fsSL \"https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/<language>-${TAG}.patch\" -o interview.patch"
+            echo "patch -p1 < interview.patch"
+            echo "rm interview.patch"
             echo "\`\`\`"
             echo
             echo "Windows PowerShell環境では、以下のコマンドを利用:"
             echo
             echo '```powershell'
-            echo "curl.exe -fsSL \"https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/<language>.patch\" -o interview.patch"
+            echo "curl.exe -fsSL \"https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/<language>-${TAG}.patch\" -o interview.patch"
             echo 'git apply interview.patch'
             echo 'Remove-Item interview.patch'
             echo '```'
             echo
-            echo "patch適用が難しい場合には、 \`<language>.zip\` を利用すること"
+            echo "patch適用が難しい場合には、 \`<language>-${TAG}.zip\` を利用すること"
             echo
           } > "$NOTES_FILE"
           gh release create "$TAG" \
@@ -114,13 +135,20 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
 
-      - name: Delete old releases
+      - name: Delete interview releases older than 100 days
         run: |
-          gh release list --limit 100 --json tagName,createdAt \
-            --jq 'sort_by(.createdAt) | reverse | .[3:] | .[].tagName' \
-            | while read -r tag; do
+          cutoff="$(date -u -d '100 days ago' +%Y-%m-%dT%H:%M:%SZ)"
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+            | jq -r --arg cutoff "$cutoff" '
+                .[]
+                | select(.draft == false)
+                | select(.tag_name | test("^(v[0-9]+|release-[0-9]{8}-[0-9]{6})$"))
+                | select(.name == ("Implementations " + .tag_name))
+                | select((.published_at // .created_at) < $cutoff)
+                | .tag_name
+              ' | while read -r tag; do
                 echo "Deleting release: $tag"
-                gh release delete "$tag" --yes --cleanup-tag
+                gh release delete "$tag" --yes
               done
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
