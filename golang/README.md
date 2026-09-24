@@ -15,4 +15,8 @@ go build ./...
 
 # テスト実行
 go test ./...
+
+# 事前コマンド確認
+command -v curl
+command -v patch
 ```

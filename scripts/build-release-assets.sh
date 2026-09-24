@@ -2,10 +2,17 @@
 
 set -euo pipefail
 
-if [ "$#" -ne 1 ]; then
-  echo "usage: $0 <output-directory>" >&2
+if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+  echo "usage: $0 <output-directory> [version]" >&2
   exit 2
 fi
+
+version="${2:-}"
+if [ -n "$version" ] && ! [[ "$version" =~ ^v[0-9]+$ ]]; then
+  echo "version must be in the form v1, v2, ..." >&2
+  exit 2
+fi
+version_suffix="${version:+-${version}}"
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 output_directory="$1"
@@ -41,11 +48,21 @@ for language in "${languages[@]}"; do
   "${repo_root}/scripts/verify-interview-patch.sh" \
     "$language" "${template_parent}/${language}"
 
+  if [ -n "$version" ]; then
+    printf '%s\n' "$version" > "${template_parent}/${language}/TEMPLATE_VERSION"
+
+    readme="${template_parent}/${language}/README.md"
+    readme_with_setup="${template_parent}/${language}/README.with-setup"
+    awk -v version="$version" 'NR == 1 { print $0 " `" version "`"; next } { print }' \
+      "$readme" > "$readme_with_setup"
+    mv "$readme_with_setup" "$readme"
+  fi
+
   cp -R "${template_parent}/${language}" "${assembled_parent}/${language}"
 
-  template_asset="${language}-template.zip"
-  assembled_asset="${language}.zip"
-  patch_asset="${language}.patch"
+  template_asset="${language}-template${version_suffix}.zip"
+  assembled_asset="${language}${version_suffix}.zip"
+  patch_asset="${language}${version_suffix}.patch"
 
   (
     cd "$template_parent"

@@ -34,27 +34,11 @@ cp -R golang "$work"
 
 Kick the [release action](https://github.com/folio-sec/wrap-api-example/actions/workflows/release.yml) manually, then release.
 
-- `<language>-template.zip`
-- `<language>.patch`
-- `<language>.zip`
+Each release has a sequential tag (`v1`, `v2`, ...). Its assets are:
 
-## On Interview
-
-- macOS / Linux / etc
-
-```sh
-curl -fsSL "https://github.com/folio-sec/wrap-api-example/releases/download/<tag>/<language>.patch" | patch -p1
-```
-
-Windows(PowerShell):
-
-```powershell
-curl.exe -fsSL "https://github.com/folio-sec/wrap-api-example/releases/download/<tag>/<language>.patch" -o interview.patch
-git apply interview.patch
-Remove-Item interview.patch
-```
-
-Alternative, use full zip.
+- `<language>-template-vN.zip` — share this before the interview
+- `<language>-vN.patch` — apply this version's patch during the interview
+- `<language>-vN.zip` — completed alternative if applying the patch is difficult
 
 ### DCO Sign-Off Methods
 

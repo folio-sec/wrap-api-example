@@ -11,4 +11,8 @@ sbt test:compile
 
 # テスト実行
 sbt test
+
+# 事前コマンド確認
+command -v curl
+command -v patch
 ```

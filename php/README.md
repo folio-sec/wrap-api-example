@@ -17,6 +17,10 @@ composer install
 
 # test
 vendor/bin/phpunit
+
+# 事前コマンド確認
+command -v curl
+command -v patch
 ```
 
 **Windows (PowerShell):**
@@ -31,4 +35,8 @@ composer install
 
 # test
 vendor\bin\phpunit
+
+# 事前コマンド確認
+Get-Command curl.exe -ErrorAction Stop
+Get-Command git -ErrorAction Stop
 ```

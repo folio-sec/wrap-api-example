@@ -16,6 +16,10 @@ git commit -m init
 
 # テスト実行
 ./mvnw test
+
+# 事前コマンド確認
+command -v curl
+command -v patch
 ```
 
 **Windows (PowerShell):**
@@ -30,4 +34,8 @@ git commit -m init
 
 # テスト実行
 .\mvnw.cmd test
+
+# 事前コマンド確認
+Get-Command curl.exe -ErrorAction Stop
+Get-Command git -ErrorAction Stop
 ```
