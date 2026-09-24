@@ -40,40 +40,6 @@ Each release has a sequential tag (`v1`, `v2`, ...). Its assets are:
 - `<language>-vN.patch` — apply this version's patch during the interview
 - `<language>-vN.zip` — completed alternative if applying the patch is difficult
 
-The extracted template's README shows its release tag in the title. Its
-development instructions include test commands and a check for the commands
-used to apply the patch. The patch command is shared during the interview.
-The tag is also recorded in `<language>/TEMPLATE_VERSION` and the ZIP filename.
-On each new release, published interview releases older than 100 days are
-removed. Release tags are retained so version numbers are never reused.
-
-## On Interview
-
-In the extracted `<language>` directory, confirm the release tag in README.md
-and use the patch from that same release. `TEMPLATE_VERSION` contains the same
-tag. For templates distributed before versioning, use the release link that
-was shared with the template.
-
-macOS / Linux / etc:
-
-```sh
-version="$(cat TEMPLATE_VERSION)"
-curl -fsSL "https://github.com/folio-sec/wrap-api-example/releases/download/${version}/<language>-${version}.patch" -o interview.patch
-patch -p1 < interview.patch
-rm interview.patch
-```
-
-Windows(PowerShell):
-
-```powershell
-$version = (Get-Content TEMPLATE_VERSION).Trim()
-curl.exe -fsSL "https://github.com/folio-sec/wrap-api-example/releases/download/$version/<language>-$version.patch" -o interview.patch
-git apply interview.patch
-Remove-Item interview.patch
-```
-
-Alternative, use full zip.
-
 ### DCO Sign-Off Methods
 
 The sign-off is a simple line at the end of the explanation for the patch, which certifies that you wrote it or otherwise have the right to pass it on as an open-source patch.
