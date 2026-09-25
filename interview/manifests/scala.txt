@@ -1,6 +1,12 @@
 README.md
+src/main/scala/folio/codinginterview/application/repository/AccountRepository.scala
+src/main/scala/folio/codinginterview/application/usecase/asset/GenerateStockHolderReportUsecase.scala
+src/main/scala/folio/codinginterview/application/usecase/asset/StockHolderJoin.scala
 src/main/scala/folio/codinginterview/application/usecase/order/RebalanceOrderUsecase.scala
 src/main/scala/folio/codinginterview/domain/Account.scala
+src/main/scala/folio/codinginterview/infrastructure/repository/AccountRepositoryImpl.scala
 src/main/scala/folio/codinginterview/infrastructure/server/DummyServer.scala
+src/main/scala/folio/codinginterview/presentation/BatchAssetController.scala
 src/main/scala/folio/codinginterview/presentation/OrderController.scala
+src/test/scala/folio/codinginterview/BatchAssetScenario.scala
 src/test/scala/folio/codinginterview/OrderScenario.scala
