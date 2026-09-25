@@ -1,8 +1,8 @@
 diff --git a/README.md b/README.md
-index aac7fb7..c277f75 100644
+index 92a2861..553eca3 100644
 --- a/README.md
 +++ b/README.md
-@@ -16,3 +16,67 @@ command -v patch
+@@ -16,3 +16,67 @@ sbt test
  command -v curl
  command -v patch
  ```
@@ -70,6 +70,82 @@ index aac7fb7..c277f75 100644
 +    1. 全売却後の現金の取り扱いに関しての方針を決めてください
 +    1. ストレッチ: 売却後の現金は銀行APIへ連携
 +4. （部分売却APIを実装してください）
+diff --git a/src/main/scala/folio/codinginterview/application/repository/AccountRepository.scala b/src/main/scala/folio/codinginterview/application/repository/AccountRepository.scala
+index de7a992..c926eba 100644
+--- a/src/main/scala/folio/codinginterview/application/repository/AccountRepository.scala
++++ b/src/main/scala/folio/codinginterview/application/repository/AccountRepository.scala
+@@ -7,6 +7,7 @@
+ /** 口座管理リポジトリ。 */
+ trait AccountRepository {
+   def find(userId: UserId): Future[Option[Account]]
++  def findAll(): Future[List[(UserId, Account)]]
+   def upsert(userId: UserId, account: Account): Future[Unit]
+   def exists(userId: UserId): Future[Boolean]
+ }
+diff --git a/src/main/scala/folio/codinginterview/application/usecase/asset/GenerateStockHolderReportUsecase.scala b/src/main/scala/folio/codinginterview/application/usecase/asset/GenerateStockHolderReportUsecase.scala
+new file mode 100644
+index 0000000..f3a57a1
+--- /dev/null
++++ b/src/main/scala/folio/codinginterview/application/usecase/asset/GenerateStockHolderReportUsecase.scala
+@@ -0,0 +1,16 @@
++package folio.codinginterview.application.usecase.asset
++
++import folio.codinginterview.application.repository.AccountRepository
++import folio.codinginterview.domain.StockSymbol
++import folio.codinginterview.domain.UserId
++import scala.concurrent.ExecutionContext
++import scala.concurrent.Future
++
++final class GenerateStockHolderReportUsecase(
++    accountRepository: AccountRepository
++)(using ec: ExecutionContext) {
++  def run(symbolToUsers: Map[StockSymbol, List[UserId]]): Future[List[StockHolderReport]] =
++    accountRepository.findAll().map { accounts =>
++      StockHolderJoin.join(accounts.map { case (id, account) => UserAccount(id, account) }, symbolToUsers)
++    }
++}
+diff --git a/src/main/scala/folio/codinginterview/application/usecase/asset/StockHolderJoin.scala b/src/main/scala/folio/codinginterview/application/usecase/asset/StockHolderJoin.scala
+new file mode 100644
+index 0000000..65487ff
+--- /dev/null
++++ b/src/main/scala/folio/codinginterview/application/usecase/asset/StockHolderJoin.scala
+@@ -0,0 +1,36 @@
++package folio.codinginterview.application.usecase.asset
++
++import folio.codinginterview.domain.Account
++import folio.codinginterview.domain.StockSymbol
++import folio.codinginterview.domain.UserId
++import scala.collection.mutable.ArrayBuffer
++
++final case class UserAccount(userId: UserId, account: Account)
++final case class StockHolder(userId: UserId, amountJpy: BigDecimal)
++final case class StockHolderReport(symbol: StockSymbol, holders: Seq[StockHolder])
++
++object StockHolderJoin {
++  /** 銘柄ごとの対象ユーザーID一覧と口座一覧を結合する。 */
++  def join(
++      accounts: List[UserAccount],
++      symbolToUsers: Map[StockSymbol, List[UserId]]
++  ): List[StockHolderReport] = {
++    val results = ArrayBuffer.empty[StockHolderReport]
++    symbolToUsers.foreach { case (symbol, userIds) =>
++      val holders = ArrayBuffer.empty[StockHolder]
++      userIds.foreach { userId =>
++        val maybeAccount = accounts.find(_.userId == userId)
++        maybeAccount match {
++          case Some(userAccount) =>
++            userAccount.account.stocks.find(_.symbol == symbol) match {
++              case Some(stock) => holders += StockHolder(userId, stock.amountJpy)
++              case None        => // 何もしない
++            }
++          case None => // 何もしない
++        }
++      }
++      results += StockHolderReport(symbol, holders.toList)
++    }
++    results.toList
++  }
++}
 diff --git a/src/main/scala/folio/codinginterview/application/usecase/order/RebalanceOrderUsecase.scala b/src/main/scala/folio/codinginterview/application/usecase/order/RebalanceOrderUsecase.scala
 new file mode 100644
 index 0000000..a872e32
@@ -133,28 +209,67 @@ index 0a13a53..890086e 100644
  }
  
  object Account {
+diff --git a/src/main/scala/folio/codinginterview/infrastructure/repository/AccountRepositoryImpl.scala b/src/main/scala/folio/codinginterview/infrastructure/repository/AccountRepositoryImpl.scala
+index 1e113ab..8ac4448 100644
+--- a/src/main/scala/folio/codinginterview/infrastructure/repository/AccountRepositoryImpl.scala
++++ b/src/main/scala/folio/codinginterview/infrastructure/repository/AccountRepositoryImpl.scala
+@@ -12,6 +12,9 @@ final class AccountRepositoryImpl extends AccountRepository {
+   override def find(userId: UserId): Future[Option[Account]] =
+     Future.successful(store.get(userId.value))
+ 
++  override def findAll(): Future[List[(UserId, Account)]] =
++    Future.successful(store.iterator.map { case (id, account) => UserId(id) -> account }.toList)
++
+   override def upsert(userId: UserId, account: Account): Future[Unit] = {
+     store.update(userId.value, account)
+     Future.unit
 diff --git a/src/main/scala/folio/codinginterview/infrastructure/server/DummyServer.scala b/src/main/scala/folio/codinginterview/infrastructure/server/DummyServer.scala
-index c4f99c5..5d9a9fc 100644
+index c4f99c5..e22ca70 100644
 --- a/src/main/scala/folio/codinginterview/infrastructure/server/DummyServer.scala
 +++ b/src/main/scala/folio/codinginterview/infrastructure/server/DummyServer.scala
-@@ -3,6 +3,7 @@
+@@ -1,19 +1,23 @@
+ package folio.codinginterview.infrastructure.server
+ 
  import folio.codinginterview.application.usecase.asset.GetAssetUsecase
++import folio.codinginterview.application.usecase.asset.GenerateStockHolderReportUsecase
  import folio.codinginterview.application.usecase.order.AdditionalBuyOrderUsecase
  import folio.codinginterview.application.usecase.order.NewOrderUsecase
 +import folio.codinginterview.application.usecase.order.RebalanceOrderUsecase
  import folio.codinginterview.application.usecase.portfolio.GetLatestPortfolioUsecase
  import folio.codinginterview.application.usecase.portfolio.UpdatePortfolioUsecase
  import folio.codinginterview.infrastructure.repository.AccountRepositoryImpl
-@@ -31,6 +32,8 @@   def default()(using ec: ExecutionContext): DummyServer = {
+ import folio.codinginterview.infrastructure.repository.PortfolioRepositoryImpl
+ import folio.codinginterview.presentation.AssetController
++import folio.codinginterview.presentation.BatchAssetController
+ import folio.codinginterview.presentation.OrderController
+ import folio.codinginterview.presentation.PortfolioController
+ import scala.concurrent.ExecutionContext
+ 
+ final class DummyServer(
+     val assetController: AssetController,
++    val batchAssetController: BatchAssetController,
+     val portfolioController: PortfolioController,
+     val orderController: OrderController
+ )
+@@ -24,6 +28,7 @@   def default()(using ec: ExecutionContext): DummyServer = {
+     val accountRepository = new AccountRepositoryImpl
+ 
+     val getAssetUsecase = new GetAssetUsecase(accountRepository)
++    val generateStockHolderReportUsecase = new GenerateStockHolderReportUsecase(accountRepository)
+     val getLatestPortfolioUsecase = new GetLatestPortfolioUsecase(portfolioRepository)
+     val updatePortfolioUsecase = new UpdatePortfolioUsecase(portfolioRepository)
+     val newOrderUsecase = new NewOrderUsecase(accountRepository, portfolioRepository)
+@@ -31,16 +36,20 @@   def default()(using ec: ExecutionContext): DummyServer = {
        accountRepository,
        portfolioRepository
      )
 +    val rebalanceOrderUsecase = new RebalanceOrderUsecase(accountRepository, portfolioRepository)
 +
      val assetController = new AssetController(getAssetUsecase)
++    val batchAssetController = new BatchAssetController(generateStockHolderReportUsecase)
      val portfolioController = new PortfolioController(
        getLatestPortfolioUsecase,
-@@ -38,7 +41,8 @@   def default()(using ec: ExecutionContext): DummyServer = {
+       updatePortfolioUsecase
      )
      val orderController = new OrderController(
        newOrderUsecase,
@@ -163,7 +278,71 @@ index c4f99c5..5d9a9fc 100644
 +      rebalanceOrderUsecase
      )
  
-     new DummyServer(assetController, portfolioController, orderController)
+-    new DummyServer(assetController, portfolioController, orderController)
++    new DummyServer(assetController, batchAssetController, portfolioController, orderController)
+   }
+ }
+diff --git a/src/main/scala/folio/codinginterview/presentation/BatchAssetController.scala b/src/main/scala/folio/codinginterview/presentation/BatchAssetController.scala
+new file mode 100644
+index 0000000..88bbc11
+--- /dev/null
++++ b/src/main/scala/folio/codinginterview/presentation/BatchAssetController.scala
+@@ -0,0 +1,55 @@
++package folio.codinginterview.presentation
++
++import folio.codinginterview.application.usecase.asset.GenerateStockHolderReportUsecase
++import folio.codinginterview.domain.StockSymbol
++import folio.codinginterview.domain.UserId
++import folio.codinginterview.presentation.PresentationException.BadRequestException
++import scala.concurrent.ExecutionContext
++import scala.concurrent.Future
++
++object BatchAssetController {
++  final case class GenerateStockHolderReportRequest(symbolToUsers: Map[String, List[String]])
++  final case class StockHolderDto(userId: String, amountJpy: String)
++  final case class StockHolderReportDto(symbol: String, holders: Seq[StockHolderDto])
++  final case class GenerateStockHolderReportResponse(reports: Seq[StockHolderReportDto])
++}
++
++final class BatchAssetController(
++    generateStockHolderReportUsecase: GenerateStockHolderReportUsecase
++)(using ec: ExecutionContext) {
++  import BatchAssetController.*
++
++  def generateStockHolderReport(
++      req: GenerateStockHolderReportRequest
++  ): Future[GenerateStockHolderReportResponse] = {
++    val parsed = req.symbolToUsers.foldLeft[Either[String, Map[StockSymbol, List[UserId]]]](
++      Right(Map.empty)
++    ) { case (acc, (rawSymbol, rawUserIds)) =>
++      for {
++        entries <- acc
++        symbol <- StockSymbol.fromString(rawSymbol).toRight(s"unknown symbol: $rawSymbol")
++        userIds <- rawUserIds.foldLeft[Either[String, List[UserId]]](Right(Nil)) {
++          case (ids, rawUserId) =>
++            for {
++              parsedIds <- ids
++              userId <- if (rawUserId.nonEmpty) Right(UserId(rawUserId))
++                else Left("userId must not be empty")
++            } yield parsedIds :+ userId
++        }
++      } yield entries.updated(symbol, userIds)
++    }
++
++    parsed match {
++      case Left(message) => Future.failed(BadRequestException(message))
++      case Right(symbolToUsers) =>
++        generateStockHolderReportUsecase.run(symbolToUsers).map { reports =>
++          GenerateStockHolderReportResponse(reports.map { report =>
++            StockHolderReportDto(
++              report.symbol.toString,
++              report.holders.map(h => StockHolderDto(h.userId.value, h.amountJpy.toString))
++            )
++          })
++        }
++    }
++  }
++}
 diff --git a/src/main/scala/folio/codinginterview/presentation/OrderController.scala b/src/main/scala/folio/codinginterview/presentation/OrderController.scala
 index 3e9812f..008911d 100644
 --- a/src/main/scala/folio/codinginterview/presentation/OrderController.scala
@@ -207,6 +386,52 @@ index 3e9812f..008911d 100644
 +      }
 +    } yield ()
  }
+diff --git a/src/test/scala/folio/codinginterview/BatchAssetScenario.scala b/src/test/scala/folio/codinginterview/BatchAssetScenario.scala
+new file mode 100644
+index 0000000..8cbfe35
+--- /dev/null
++++ b/src/test/scala/folio/codinginterview/BatchAssetScenario.scala
+@@ -0,0 +1,40 @@
++package folio.codinginterview
++
++import folio.codinginterview.infrastructure.server.DummyServer
++import folio.codinginterview.presentation.BatchAssetController.GenerateStockHolderReportRequest
++import folio.codinginterview.presentation.OrderController.NewOrderRequest
++import folio.codinginterview.presentation.PortfolioController.PortfolioItemDto
++import folio.codinginterview.presentation.PortfolioController.UpdateOptimalPortfolioRequest
++import org.scalatest.funsuite.AnyFunSuite
++import scala.concurrent.Await
++import scala.concurrent.ExecutionContext
++import scala.concurrent.duration.*
++
++class BatchAssetScenario extends AnyFunSuite {
++  given ExecutionContext = ExecutionContext.global
++
++  test("銘柄別の対象ユーザーの保有額を返す") {
++    val server = DummyServer.default()
++    Await.result(
++      server.portfolioController.updateOptimalPortfolio(
++        UpdateOptimalPortfolioRequest(
++          Seq(PortfolioItemDto("Toyopa", "0.40"), PortfolioItemDto("Somy", "0.60"))
++        )
++      ),
++      5.seconds
++    )
++    Await.result(server.orderController.newOrder(NewOrderRequest("user-1", "100000")), 5.seconds)
++
++    val response = Await.result(
++      server.batchAssetController.generateStockHolderReport(
++        GenerateStockHolderReportRequest(Map("Toyopa" -> List("user-1")))
++      ),
++      5.seconds
++    )
++
++    assert(response.reports.size == 1)
++    assert(response.reports.head.symbol == "Toyopa")
++    assert(response.reports.head.holders.map(_.userId) == Seq("user-1"))
++    assert(response.reports.head.holders.map(_.amountJpy) == Seq("38000"))
++  }
++}
 diff --git a/src/test/scala/folio/codinginterview/OrderScenario.scala b/src/test/scala/folio/codinginterview/OrderScenario.scala
 new file mode 100644
 index 0000000..675692a
