@@ -84,7 +84,7 @@ index de7a992..c926eba 100644
  }
 diff --git a/src/main/scala/folio/codinginterview/application/usecase/asset/GenerateStockHolderReportUsecase.scala b/src/main/scala/folio/codinginterview/application/usecase/asset/GenerateStockHolderReportUsecase.scala
 new file mode 100644
-index 0000000..f3a57a1
+index 0000000..0a59d65
 --- /dev/null
 +++ b/src/main/scala/folio/codinginterview/application/usecase/asset/GenerateStockHolderReportUsecase.scala
 @@ -0,0 +1,16 @@
@@ -101,15 +101,15 @@ index 0000000..f3a57a1
 +)(using ec: ExecutionContext) {
 +  def run(symbolToUsers: Map[StockSymbol, List[UserId]]): Future[List[StockHolderReport]] =
 +    accountRepository.findAll().map { accounts =>
-+      StockHolderJoin.join(accounts.map { case (id, account) => UserAccount(id, account) }, symbolToUsers)
++      StockHolderJoiner.join(accounts.map { case (id, account) => UserAccount(id, account) }, symbolToUsers)
 +    }
 +}
-diff --git a/src/main/scala/folio/codinginterview/application/usecase/asset/StockHolderJoin.scala b/src/main/scala/folio/codinginterview/application/usecase/asset/StockHolderJoin.scala
+diff --git a/src/main/scala/folio/codinginterview/application/usecase/asset/StockHolderJoiner.scala b/src/main/scala/folio/codinginterview/application/usecase/asset/StockHolderJoiner.scala
 new file mode 100644
-index 0000000..65487ff
+index 0000000..6cf0355
 --- /dev/null
-+++ b/src/main/scala/folio/codinginterview/application/usecase/asset/StockHolderJoin.scala
-@@ -0,0 +1,36 @@
++++ b/src/main/scala/folio/codinginterview/application/usecase/asset/StockHolderJoiner.scala
+@@ -0,0 +1,41 @@
 +package folio.codinginterview.application.usecase.asset
 +
 +import folio.codinginterview.domain.Account
@@ -121,8 +121,13 @@ index 0000000..65487ff
 +final case class StockHolder(userId: UserId, amountJpy: BigDecimal)
 +final case class StockHolderReport(symbol: StockSymbol, holders: Seq[StockHolder])
 +
-+object StockHolderJoin {
-+  /** 銘柄ごとの対象ユーザーID一覧と口座一覧を結合する。 */
++object StockHolderJoiner {
++  /**
++   * 全口座情報と、銘柄を保有する顧客マッピング情報をもとに、銘柄を保持する顧客・口座一覧情報を返却する
++   * @param accounts 全口座一覧
++   * @param symbolToUsers 銘柄を保有する顧客マッピング情報
++   * @return 銘柄を保持する顧客・口座一覧情報
++   */
 +  def join(
 +      accounts: List[UserAccount],
 +      symbolToUsers: Map[StockSymbol, List[UserId]]
