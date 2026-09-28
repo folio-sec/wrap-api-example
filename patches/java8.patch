@@ -585,7 +585,7 @@ index fe261ab..f1c7f63 100644
  }
 diff --git a/src/test/java/folio/codinginterview/BatchAssetScenarioTest.java b/src/test/java/folio/codinginterview/BatchAssetScenarioTest.java
 new file mode 100644
-index 0000000..e3fe8db
+index 0000000..3752dff
 --- /dev/null
 +++ b/src/test/java/folio/codinginterview/BatchAssetScenarioTest.java
 @@ -0,0 +1,70 @@
@@ -642,7 +642,7 @@ index 0000000..e3fe8db
 +                new BatchAssetController.GenerateStockHolderReportRequest(symbolToUsers)
 +        ).get();
 +
-+        // Then: 結果を Map でそのまま確認する
++        // Then: Toyopaはuser1とuser2が、Somyはuser2のみが保有するレポートが出力される
 +        Map<String, List<BatchAssetController.StockHolderDto>> reports = new HashMap<>();
 +        for (BatchAssetController.StockHolderReportDto report : response.reports()) {
 +            reports.put(report.symbol(), report.holders());

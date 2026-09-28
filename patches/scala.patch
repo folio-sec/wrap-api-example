@@ -394,7 +394,7 @@ index 3e9812f..008911d 100644
  }
 diff --git a/src/test/scala/folio/codinginterview/BatchAssetScenario.scala b/src/test/scala/folio/codinginterview/BatchAssetScenario.scala
 new file mode 100644
-index 0000000..9e2be68
+index 0000000..2d8a053
 --- /dev/null
 +++ b/src/test/scala/folio/codinginterview/BatchAssetScenario.scala
 @@ -0,0 +1,59 @@
@@ -448,7 +448,7 @@ index 0000000..9e2be68
 +        )
 +      ).await
 +
-+      Then("結果を Map でそのまま確認する")
++      Then("Toyopaはuser1とuser2が、Somyはuser2のみが保有するレポートが出力される")
 +      val reports = response.reports.map(report => report.symbol -> report.holders).toMap
 +      assert(reports == Map(
 +        "Toyopa" -> Seq(StockHolderDto(user1, "95000"), StockHolderDto(user2, "76000")),

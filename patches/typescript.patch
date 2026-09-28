@@ -415,7 +415,7 @@ index e340e92..64934df 100644
  }
 diff --git a/tests/batchAssetScenario.test.ts b/tests/batchAssetScenario.test.ts
 new file mode 100644
-index 0000000..44878ad
+index 0000000..602a67b
 --- /dev/null
 +++ b/tests/batchAssetScenario.test.ts
 @@ -0,0 +1,52 @@
@@ -455,7 +455,7 @@ index 0000000..44878ad
 +      },
 +    });
 +
-+    // Then: 結果を Map でそのまま確認する
++    // Then: Toyopaはuser1とuser2が、Somyはuser2のみが保有するレポートが出力される
 +    const reports = new Map(response.reports.map((report) => [report.symbol, report.holders]));
 +    expect(reports).toEqual(
 +      new Map([

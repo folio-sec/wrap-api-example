@@ -481,7 +481,7 @@ index 583d888..f0f0456 100644
 +}
 diff --git a/test/batch_asset_scenario_test.go b/test/batch_asset_scenario_test.go
 new file mode 100644
-index 0000000..afd5b94
+index 0000000..2b861ff
 --- /dev/null
 +++ b/test/batch_asset_scenario_test.go
 @@ -0,0 +1,77 @@
@@ -544,7 +544,7 @@ index 0000000..afd5b94
 +		t.Fatalf("GenerateStockHolderReport failed: %v", err)
 +	}
 +
-+	t.Log("Then: 結果を Map でそのまま確認する")
++	t.Log("Then: Toyopaはuser1とuser2が、Somyはuser2のみが保有するレポートが出力される")
 +	reports := make(map[string][]presentation.StockHolderDto)
 +	for _, report := range response.Reports {
 +		reports[report.Symbol] = report.Holders

@@ -388,7 +388,7 @@ index e637d73..5bf71a9 100644
  end
 diff --git a/spec/batch_asset_scenario_spec.rb b/spec/batch_asset_scenario_spec.rb
 new file mode 100644
-index 0000000..3d91c2a
+index 0000000..7fd8840
 --- /dev/null
 +++ b/spec/batch_asset_scenario_spec.rb
 @@ -0,0 +1,56 @@
@@ -433,7 +433,7 @@ index 0000000..3d91c2a
 +      )
 +    )
 +
-+    # Then: 結果を Map でそのまま確認する
++    # Then: Toyopaはuser1とuser2が、Somyはuser2のみが保有するレポートが出力される
 +    reports = response.reports.each_with_object({}) { |r, h| h[r.symbol] = r.holders }
 +    expect(reports).to eq(
 +      {

@@ -476,7 +476,7 @@ index 6bbfc31..051050d 100644
  }
 diff --git a/tests/BatchAssetScenarioTest.php b/tests/BatchAssetScenarioTest.php
 new file mode 100644
-index 0000000..f908a72
+index 0000000..bc42c1c
 --- /dev/null
 +++ b/tests/BatchAssetScenarioTest.php
 @@ -0,0 +1,58 @@
@@ -527,7 +527,7 @@ index 0000000..f908a72
 +            ])
 +        );
 +
-+        // Then: 結果を Map でそのまま確認する
++        // Then: Toyopaはuser1とuser2が、Somyはuser2のみが保有するレポートが出力される
 +        $reports = [];
 +        foreach ($response->reports as $report) {
 +            $reports[$report->symbol] = $report->holders;

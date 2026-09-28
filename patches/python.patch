@@ -422,7 +422,7 @@ index 3f306d1..3131ff0 100644
 +            raise BadRequestException("user has no live account")
 diff --git a/tests/test_batch_asset_scenario.py b/tests/test_batch_asset_scenario.py
 new file mode 100644
-index 0000000..4ef788c
+index 0000000..ebd27ce
 --- /dev/null
 +++ b/tests/test_batch_asset_scenario.py
 @@ -0,0 +1,46 @@
@@ -466,7 +466,7 @@ index 0000000..4ef788c
 +        )
 +    )
 +
-+    # Then: 結果を Map でそのまま確認する
++    # Then: Toyopaはuser1とuser2が、Somyはuser2のみが保有するレポートが出力される
 +    reports = {report.symbol: report.holders for report in response.reports}
 +    assert reports == {
 +        "Toyopa": (StockHolderDto(user1, "95000"), StockHolderDto(user2, "76000")),
