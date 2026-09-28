@@ -292,10 +292,10 @@ index 0eb2bab..7adc890 100644
      end
 diff --git a/lib/coding_interview/presentation/batch_asset_controller.rb b/lib/coding_interview/presentation/batch_asset_controller.rb
 new file mode 100644
-index 0000000..7233c82
+index 0000000..d8ef9bc
 --- /dev/null
 +++ b/lib/coding_interview/presentation/batch_asset_controller.rb
-@@ -0,0 +1,48 @@
+@@ -0,0 +1,42 @@
 +require "bigdecimal"
 +require_relative "presentation_exception"
 +require_relative "presentation_preparation"
@@ -330,16 +330,10 @@ index 0000000..7233c82
 +          reports.map do |report|
 +            StockHolderReportDto.new(
 +              report.symbol.to_s,
-+              report.holders.map { |h| StockHolderDto.new(h.user_id.value, format_amount(h.amount_jpy)) }
++              report.holders.map { |h| StockHolderDto.new(h.user_id.value, h.amount_jpy.to_s("F")) }
 +            )
 +          end
 +        )
-+      end
-+
-+      private
-+
-+      def format_amount(amount)
-+        amount.to_s("F").sub(/\.0\z/, "")
 +      end
 +    end
 +  end
@@ -388,7 +382,7 @@ index e637d73..5bf71a9 100644
  end
 diff --git a/spec/batch_asset_scenario_spec.rb b/spec/batch_asset_scenario_spec.rb
 new file mode 100644
-index 0000000..7fd8840
+index 0000000..c6acc37
 --- /dev/null
 +++ b/spec/batch_asset_scenario_spec.rb
 @@ -0,0 +1,56 @@
@@ -438,11 +432,11 @@ index 0000000..7fd8840
 +    expect(reports).to eq(
 +      {
 +        "Toyopa" => [
-+          CodingInterview::Presentation::StockHolderDto.new(user1, "95000"),
-+          CodingInterview::Presentation::StockHolderDto.new(user2, "76000")
++          CodingInterview::Presentation::StockHolderDto.new(user1, "95000.0"),
++          CodingInterview::Presentation::StockHolderDto.new(user2, "76000.0")
 +        ],
 +        "Somy" => [
-+          CodingInterview::Presentation::StockHolderDto.new(user2, "114000")
++          CodingInterview::Presentation::StockHolderDto.new(user2, "114000.0")
 +        ]
 +      }
 +    )
