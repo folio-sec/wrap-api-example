@@ -394,14 +394,15 @@ index 3e9812f..008911d 100644
  }
 diff --git a/src/test/scala/folio/codinginterview/BatchAssetScenario.scala b/src/test/scala/folio/codinginterview/BatchAssetScenario.scala
 new file mode 100644
-index 0000000..f9f09e5
+index 0000000..9e2be68
 --- /dev/null
 +++ b/src/test/scala/folio/codinginterview/BatchAssetScenario.scala
-@@ -0,0 +1,54 @@
+@@ -0,0 +1,59 @@
 +package folio.codinginterview
 +
 +import folio.codinginterview.infrastructure.server.DummyServer
 +import folio.codinginterview.presentation.BatchAssetController.GenerateStockHolderReportRequest
++import folio.codinginterview.presentation.BatchAssetController.StockHolderDto
 +import folio.codinginterview.presentation.OrderController.NewOrderRequest
 +import folio.codinginterview.presentation.PortfolioController.PortfolioItemDto
 +import folio.codinginterview.presentation.PortfolioController.UpdateOptimalPortfolioRequest
@@ -419,20 +420,25 @@ index 0000000..f9f09e5
 +  Feature("Batch Asset Report") {
 +    Scenario("銘柄毎に保有している顧客・口座一覧を出力する") {
 +      val server = DummyServer.default()
-+
-+      Given("user1 を作成する")
 +      val user1 = "user-1"
-+
-+      And("user2 を作成する")
 +      val user2 = "user-2"
 +
-+      And("user1 と user2 で新規拠出する")
++      Given("最適ポートフォリオを Toyopa 100% にする")
++      server.portfolioController.updateOptimalPortfolio(
++        UpdateOptimalPortfolioRequest(Seq(PortfolioItemDto("Toyopa", "1.0")))
++      ).await
++
++      And("user1 が新規拠出する")
++      server.orderController.newOrder(NewOrderRequest(user1, "100000")).await
++
++      And("最適ポートフォリオを Toyopa 40%・Somy 60% にする")
 +      server.portfolioController.updateOptimalPortfolio(
 +        UpdateOptimalPortfolioRequest(
 +          Seq(PortfolioItemDto("Toyopa", "0.40"), PortfolioItemDto("Somy", "0.60"))
 +        )
 +      ).await
-+      server.orderController.newOrder(NewOrderRequest(user1, "100000")).await
++
++      And("user2 が新規拠出する")
 +      server.orderController.newOrder(NewOrderRequest(user2, "200000")).await
 +
 +      When("generateStockHolderReport を呼び出す")
@@ -442,13 +448,12 @@ index 0000000..f9f09e5
 +        )
 +      ).await
 +
-+      Then("銘柄ごとに user1 と user2 の保有額を出力する")
++      Then("結果を Map でそのまま確認する")
 +      val reports = response.reports.map(report => report.symbol -> report.holders).toMap
-+      assert(reports.keySet == Set("Toyopa", "Somy"))
-+      assert(reports("Toyopa").map(holder => holder.userId -> holder.amountJpy) ==
-+        Seq(user1 -> "38000", user2 -> "76000"))
-+      assert(reports("Somy").map(holder => holder.userId -> holder.amountJpy) ==
-+        Seq(user1 -> "57000", user2 -> "114000"))
++      assert(reports == Map(
++        "Toyopa" -> Seq(StockHolderDto(user1, "95000"), StockHolderDto(user2, "76000")),
++        "Somy" -> Seq(StockHolderDto(user2, "114000"))
++      ))
 +    }
 +  }
 +}
