@@ -284,10 +284,10 @@ index c4f99c5..e22ca70 100644
  }
 diff --git a/src/main/scala/folio/codinginterview/presentation/BatchAssetController.scala b/src/main/scala/folio/codinginterview/presentation/BatchAssetController.scala
 new file mode 100644
-index 0000000..88bbc11
+index 0000000..8b69e62
 --- /dev/null
 +++ b/src/main/scala/folio/codinginterview/presentation/BatchAssetController.scala
-@@ -0,0 +1,55 @@
+@@ -0,0 +1,56 @@
 +package folio.codinginterview.presentation
 +
 +import folio.codinginterview.application.usecase.asset.GenerateStockHolderReportUsecase
@@ -309,6 +309,7 @@ index 0000000..88bbc11
 +)(using ec: ExecutionContext) {
 +  import BatchAssetController.*
 +
++  /** バッチ処理用に、銘柄を保有している顧客・口座一覧を出力する */
 +  def generateStockHolderReport(
 +      req: GenerateStockHolderReportRequest
 +  ): Future[GenerateStockHolderReportResponse] = {
@@ -388,10 +389,10 @@ index 3e9812f..008911d 100644
  }
 diff --git a/src/test/scala/folio/codinginterview/BatchAssetScenario.scala b/src/test/scala/folio/codinginterview/BatchAssetScenario.scala
 new file mode 100644
-index 0000000..8cbfe35
+index 0000000..f9f09e5
 --- /dev/null
 +++ b/src/test/scala/folio/codinginterview/BatchAssetScenario.scala
-@@ -0,0 +1,40 @@
+@@ -0,0 +1,54 @@
 +package folio.codinginterview
 +
 +import folio.codinginterview.infrastructure.server.DummyServer
@@ -399,37 +400,51 @@ index 0000000..8cbfe35
 +import folio.codinginterview.presentation.OrderController.NewOrderRequest
 +import folio.codinginterview.presentation.PortfolioController.PortfolioItemDto
 +import folio.codinginterview.presentation.PortfolioController.UpdateOptimalPortfolioRequest
-+import org.scalatest.funsuite.AnyFunSuite
++import org.scalatest.GivenWhenThen
++import org.scalatest.featurespec.AnyFeatureSpec
 +import scala.concurrent.Await
 +import scala.concurrent.ExecutionContext
++import scala.concurrent.Future
 +import scala.concurrent.duration.*
 +
-+class BatchAssetScenario extends AnyFunSuite {
++class BatchAssetScenario extends AnyFeatureSpec with GivenWhenThen {
 +  given ExecutionContext = ExecutionContext.global
++  extension [A](f: Future[A]) def await: A = Await.result(f, 5.seconds)
 +
-+  test("銘柄別の対象ユーザーの保有額を返す") {
-+    val server = DummyServer.default()
-+    Await.result(
++  Feature("Batch Asset Report") {
++    Scenario("銘柄毎に保有している顧客・口座一覧を出力する") {
++      val server = DummyServer.default()
++
++      Given("user1 を作成する")
++      val user1 = "user-1"
++
++      And("user2 を作成する")
++      val user2 = "user-2"
++
++      And("user1 と user2 で新規拠出する")
 +      server.portfolioController.updateOptimalPortfolio(
 +        UpdateOptimalPortfolioRequest(
 +          Seq(PortfolioItemDto("Toyopa", "0.40"), PortfolioItemDto("Somy", "0.60"))
 +        )
-+      ),
-+      5.seconds
-+    )
-+    Await.result(server.orderController.newOrder(NewOrderRequest("user-1", "100000")), 5.seconds)
++      ).await
++      server.orderController.newOrder(NewOrderRequest(user1, "100000")).await
++      server.orderController.newOrder(NewOrderRequest(user2, "200000")).await
 +
-+    val response = Await.result(
-+      server.batchAssetController.generateStockHolderReport(
-+        GenerateStockHolderReportRequest(Map("Toyopa" -> List("user-1")))
-+      ),
-+      5.seconds
-+    )
++      When("generateStockHolderReport を呼び出す")
++      val response = server.batchAssetController.generateStockHolderReport(
++        GenerateStockHolderReportRequest(
++          Map("Toyopa" -> List(user1, user2), "Somy" -> List(user1, user2))
++        )
++      ).await
 +
-+    assert(response.reports.size == 1)
-+    assert(response.reports.head.symbol == "Toyopa")
-+    assert(response.reports.head.holders.map(_.userId) == Seq("user-1"))
-+    assert(response.reports.head.holders.map(_.amountJpy) == Seq("38000"))
++      Then("銘柄ごとに user1 と user2 の保有額を出力する")
++      val reports = response.reports.map(report => report.symbol -> report.holders).toMap
++      assert(reports.keySet == Set("Toyopa", "Somy"))
++      assert(reports("Toyopa").map(holder => holder.userId -> holder.amountJpy) ==
++        Seq(user1 -> "38000", user2 -> "76000"))
++      assert(reports("Somy").map(holder => holder.userId -> holder.amountJpy) ==
++        Seq(user1 -> "57000", user2 -> "114000"))
++    }
 +  }
 +}
 diff --git a/src/test/scala/folio/codinginterview/OrderScenario.scala b/src/test/scala/folio/codinginterview/OrderScenario.scala
