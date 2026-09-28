@@ -1,8 +1,8 @@
-diff --git b/README.md a/README.md
-index 7c3c595..6f0b529 100644
---- b/README.md
-+++ a/README.md
-@@ -43,3 +43,67 @@ Get-Command git -ErrorAction Stop
+diff --git a/README.md b/README.md
+index 7079265..e849e6c 100644
+--- a/README.md
++++ b/README.md
+@@ -43,3 +43,67 @@ pytest -v
  Get-Command curl.exe -ErrorAction Stop
  Get-Command git -ErrorAction Stop
  ```
@@ -70,11 +70,112 @@ index 7c3c595..6f0b529 100644
 +    1. 全売却後の現金の取り扱いに関しての方針を決めてください
 +    1. ストレッチ: 売却後の現金は銀行APIへ連携
 +4. （部分売却APIを実装してください）
-diff --git b/src/coding_interview/application/usecase/order/rebalance_order_usecase.py a/src/coding_interview/application/usecase/order/rebalance_order_usecase.py
+diff --git a/src/coding_interview/application/repository/account_repository.py b/src/coding_interview/application/repository/account_repository.py
+index f788c9f..dfc7e38 100644
+--- a/src/coding_interview/application/repository/account_repository.py
++++ b/src/coding_interview/application/repository/account_repository.py
+@@ -10,5 +10,6 @@ class AccountRepository(Protocol):
+     """口座管理リポジトリ。"""
+ 
+     def find(self, user_id: UserId) -> Account | None: ...
++    def find_all(self) -> list[tuple[UserId, Account]]: ...
+     def upsert(self, user_id: UserId, account: Account) -> None: ...
+     def exists(self, user_id: UserId) -> bool: ...
+diff --git a/src/coding_interview/application/usecase/asset/generate_stock_holder_report_usecase.py b/src/coding_interview/application/usecase/asset/generate_stock_holder_report_usecase.py
+new file mode 100644
+index 0000000..2eb3f0a
+--- /dev/null
++++ b/src/coding_interview/application/usecase/asset/generate_stock_holder_report_usecase.py
+@@ -0,0 +1,24 @@
++from __future__ import annotations
++
++from coding_interview.application.repository.account_repository import AccountRepository
++from coding_interview.application.usecase.asset.stock_holder_joiner import (
++    StockHolderReport,
++    UserAccount,
++    join,
++)
++from coding_interview.domain.stock_symbol import StockSymbol
++from coding_interview.domain.user_id import UserId
++
++
++class GenerateStockHolderReportUsecase:
++    def __init__(self, account_repository: AccountRepository) -> None:
++        self._account_repository = account_repository
++
++    def run(
++        self, symbol_to_users: dict[StockSymbol, list[UserId]]
++    ) -> list[StockHolderReport]:
++        accounts = self._account_repository.find_all()
++        return join(
++            [UserAccount(user_id, account) for user_id, account in accounts],
++            symbol_to_users,
++        )
+diff --git a/src/coding_interview/application/usecase/asset/stock_holder_joiner.py b/src/coding_interview/application/usecase/asset/stock_holder_joiner.py
+new file mode 100644
+index 0000000..3b25c2d
+--- /dev/null
++++ b/src/coding_interview/application/usecase/asset/stock_holder_joiner.py
+@@ -0,0 +1,54 @@
++from __future__ import annotations
++
++from dataclasses import dataclass
++from decimal import Decimal
++
++from coding_interview.domain.account import Account
++from coding_interview.domain.stock_symbol import StockSymbol
++from coding_interview.domain.user_id import UserId
++
++
++@dataclass(frozen=True)
++class UserAccount:
++    user_id: UserId
++    account: Account
++
++
++@dataclass(frozen=True)
++class StockHolder:
++    user_id: UserId
++    amount_jpy: Decimal
++
++
++@dataclass(frozen=True)
++class StockHolderReport:
++    symbol: StockSymbol
++    holders: list[StockHolder]
++
++
++def join(
++    accounts: list[UserAccount], symbol_to_users: dict[StockSymbol, list[UserId]]
++) -> list[StockHolderReport]:
++    """全口座情報と、銘柄を保有する顧客マッピング情報をもとに、銘柄を保持する顧客・口座一覧情報を返却する
++    @param accounts 全口座一覧
++    @param symbol_to_users 銘柄を保有する顧客マッピング情報
++    @return 銘柄を保持する顧客・口座一覧情報
++    """
++    results: list[StockHolderReport] = []
++    for symbol, user_ids in symbol_to_users.items():
++        holders: list[StockHolder] = []
++        for user_id in user_ids:
++            maybe_account = next((a for a in accounts if a.user_id == user_id), None)
++            if maybe_account is not None:
++                user_account = maybe_account
++                stock = next(
++                    (s for s in user_account.account.stocks if s.symbol == symbol), None
++                )
++                if stock is not None:
++                    holders.append(StockHolder(user_id, stock.amount_jpy))
++                else:
++                    pass  # 何もしない
++            else:
++                pass  # 何もしない
++        results.append(StockHolderReport(symbol, holders))
++    return results
+diff --git a/src/coding_interview/application/usecase/order/rebalance_order_usecase.py b/src/coding_interview/application/usecase/order/rebalance_order_usecase.py
 new file mode 100644
 index 0000000..7399ed6
 --- /dev/null
-+++ a/src/coding_interview/application/usecase/order/rebalance_order_usecase.py
++++ b/src/coding_interview/application/usecase/order/rebalance_order_usecase.py
 @@ -0,0 +1,31 @@
 +from __future__ import annotations
 +
@@ -107,10 +208,10 @@ index 0000000..7399ed6
 +        portfolio = self._portfolio_repository.get()
 +        new_account = account.rebalance(portfolio)
 +        self._account_repository.upsert(input.user_id, new_account)
-diff --git b/src/coding_interview/domain/account.py a/src/coding_interview/domain/account.py
+diff --git a/src/coding_interview/domain/account.py b/src/coding_interview/domain/account.py
 index 3ca0458..bef2d40 100644
---- b/src/coding_interview/domain/account.py
-+++ a/src/coding_interview/domain/account.py
+--- a/src/coding_interview/domain/account.py
++++ b/src/coding_interview/domain/account.py
 @@ -64,3 +64,16 @@ def add_funds(self, amount: Decimal, portfolio: Portfolio) -> "Account":
          all_stocks = tuple(new_portfolio_stocks + preserved_stocks)
          final_amount = sum(s.amount_jpy for s in all_stocks)
@@ -128,11 +229,31 @@ index 3ca0458..bef2d40 100644
 +            used_for_stocks += amt
 +        final_cash = investable - used_for_stocks
 +        return Account(cash=final_cash, stocks=tuple(new_stocks))
-diff --git b/src/coding_interview/infrastructure/server/dummy_server.py a/src/coding_interview/infrastructure/server/dummy_server.py
-index ca6c36f..999b67f 100644
---- b/src/coding_interview/infrastructure/server/dummy_server.py
-+++ a/src/coding_interview/infrastructure/server/dummy_server.py
-@@ -5,6 +5,7 @@
+diff --git a/src/coding_interview/infrastructure/repository/account_repository_impl.py b/src/coding_interview/infrastructure/repository/account_repository_impl.py
+index ec6c196..3969f1b 100644
+--- a/src/coding_interview/infrastructure/repository/account_repository_impl.py
++++ b/src/coding_interview/infrastructure/repository/account_repository_impl.py
+@@ -11,6 +11,9 @@ def __init__(self) -> None:
+     def find(self, user_id: UserId) -> Account | None:
+         return self._store.get(user_id.value)
+ 
++    def find_all(self) -> list[tuple[UserId, Account]]:
++        return [(UserId(user_id), account) for user_id, account in self._store.items()]
++
+     def upsert(self, user_id: UserId, account: Account) -> None:
+         self._store[user_id.value] = account
+ 
+diff --git a/src/coding_interview/infrastructure/server/dummy_server.py b/src/coding_interview/infrastructure/server/dummy_server.py
+index ca6c36f..5f0d0f2 100644
+--- a/src/coding_interview/infrastructure/server/dummy_server.py
++++ b/src/coding_interview/infrastructure/server/dummy_server.py
+@@ -2,14 +2,19 @@
+ 
+ from dataclasses import dataclass
+ 
++from coding_interview.application.usecase.asset.generate_stock_holder_report_usecase import (
++    GenerateStockHolderReportUsecase,
++)
  from coding_interview.application.usecase.asset.get_asset_usecase import GetAssetUsecase
  from coding_interview.application.usecase.order.additional_buy_order_usecase import AdditionalBuyOrderUsecase
  from coding_interview.application.usecase.order.new_order_usecase import NewOrderUsecase
@@ -140,7 +261,28 @@ index ca6c36f..999b67f 100644
  from coding_interview.application.usecase.portfolio.get_latest_portfolio_usecase import GetLatestPortfolioUsecase
  from coding_interview.application.usecase.portfolio.update_portfolio_usecase import UpdatePortfolioUsecase
  from coding_interview.infrastructure.repository.account_repository_impl import AccountRepositoryImpl
-@@ -32,6 +33,7 @@ def default(cls) -> "DummyServer":
+ from coding_interview.infrastructure.repository.portfolio_repository_impl import PortfolioRepositoryImpl
+ from coding_interview.presentation.asset_controller import AssetController
++from coding_interview.presentation.batch_asset_controller import BatchAssetController
+ from coding_interview.presentation.order_controller import OrderController
+ from coding_interview.presentation.portfolio_controller import PortfolioController
+ 
+@@ -17,6 +22,7 @@
+ @dataclass
+ class DummyServer:
+     asset_controller: AssetController
++    batch_asset_controller: BatchAssetController
+     portfolio_controller: PortfolioController
+     order_controller: OrderController
+ 
+@@ -26,20 +32,24 @@ def default(cls) -> "DummyServer":
+         account_repository = AccountRepositoryImpl()
+ 
+         get_asset_usecase = GetAssetUsecase(account_repository)
++        generate_stock_holder_report_usecase = GenerateStockHolderReportUsecase(account_repository)
+         get_latest_portfolio_usecase = GetLatestPortfolioUsecase(portfolio_repository)
+         update_portfolio_usecase = UpdatePortfolioUsecase(portfolio_repository)
+         new_order_usecase = NewOrderUsecase(account_repository, portfolio_repository)
          additional_buy_order_usecase = AdditionalBuyOrderUsecase(
              account_repository, portfolio_repository
          )
@@ -148,17 +290,92 @@ index ca6c36f..999b67f 100644
  
          return cls(
              asset_controller=AssetController(get_asset_usecase),
-@@ -41,5 +43,6 @@ def default(cls) -> "DummyServer":
++            batch_asset_controller=BatchAssetController(generate_stock_holder_report_usecase),
+             portfolio_controller=PortfolioController(
+                 get_latest_portfolio_usecase, update_portfolio_usecase
+             ),
              order_controller=OrderController(
                  new_order_usecase,
                  additional_buy_order_usecase,
 +                rebalance_order_usecase,
              ),
          )
-diff --git b/src/coding_interview/presentation/order_controller.py a/src/coding_interview/presentation/order_controller.py
+diff --git a/src/coding_interview/presentation/batch_asset_controller.py b/src/coding_interview/presentation/batch_asset_controller.py
+new file mode 100644
+index 0000000..57234f3
+--- /dev/null
++++ b/src/coding_interview/presentation/batch_asset_controller.py
+@@ -0,0 +1,66 @@
++from __future__ import annotations
++
++from dataclasses import dataclass
++
++from coding_interview.application.usecase.asset.generate_stock_holder_report_usecase import (
++    GenerateStockHolderReportUsecase,
++)
++from coding_interview.domain.stock_symbol import StockSymbol
++from coding_interview.domain.user_id import UserId
++from coding_interview.presentation.exceptions import BadRequestException
++from coding_interview.presentation.preparation import parse_user_id
++
++
++@dataclass(frozen=True)
++class GenerateStockHolderReportRequest:
++    symbolToUsers: dict[str, list[str]]
++
++
++@dataclass(frozen=True)
++class StockHolderDto:
++    userId: str
++    amountJpy: str
++
++
++@dataclass(frozen=True)
++class StockHolderReportDto:
++    symbol: str
++    holders: tuple[StockHolderDto, ...]
++
++
++@dataclass(frozen=True)
++class GenerateStockHolderReportResponse:
++    reports: tuple[StockHolderReportDto, ...]
++
++
++class BatchAssetController:
++    def __init__(
++        self, generate_stock_holder_report_usecase: GenerateStockHolderReportUsecase
++    ) -> None:
++        self._generate_stock_holder_report_usecase = generate_stock_holder_report_usecase
++
++    def generate_stock_holder_report(
++        self, req: GenerateStockHolderReportRequest
++    ) -> GenerateStockHolderReportResponse:
++        """バッチ処理用に、銘柄を保有している顧客・口座一覧を出力する"""
++        symbol_to_users: dict[StockSymbol, list[UserId]] = {}
++        for raw_symbol, raw_user_ids in req.symbolToUsers.items():
++            symbol = StockSymbol.from_string(raw_symbol)
++            if symbol is None:
++                raise BadRequestException(f"unknown symbol: {raw_symbol}")
++            user_ids = [parse_user_id(raw_user_id) for raw_user_id in raw_user_ids]
++            symbol_to_users[symbol] = user_ids
++
++        reports = self._generate_stock_holder_report_usecase.run(symbol_to_users)
++        return GenerateStockHolderReportResponse(
++            reports=tuple(
++                StockHolderReportDto(
++                    symbol=str(report.symbol),
++                    holders=tuple(
++                        StockHolderDto(userId=h.user_id.value, amountJpy=str(h.amount_jpy))
++                        for h in report.holders
++                    ),
++                )
++                for report in reports
++            )
++        )
+diff --git a/src/coding_interview/presentation/order_controller.py b/src/coding_interview/presentation/order_controller.py
 index 3f306d1..3131ff0 100644
---- b/src/coding_interview/presentation/order_controller.py
-+++ a/src/coding_interview/presentation/order_controller.py
+--- a/src/coding_interview/presentation/order_controller.py
++++ b/src/coding_interview/presentation/order_controller.py
 @@ -15,6 +15,10 @@
      NewOrderUsecase,
      NewOrderUsecaseInput,
@@ -203,11 +420,63 @@ index 3f306d1..3131ff0 100644
 +            self._rebalance_order_usecase.run(RebalanceOrderUsecaseInput(uid))
 +        except UserNotFoundError:
 +            raise BadRequestException("user has no live account")
-diff --git b/tests/test_order_scenario.py a/tests/test_order_scenario.py
+diff --git a/tests/test_batch_asset_scenario.py b/tests/test_batch_asset_scenario.py
+new file mode 100644
+index 0000000..4ef788c
+--- /dev/null
++++ b/tests/test_batch_asset_scenario.py
+@@ -0,0 +1,46 @@
++from coding_interview.infrastructure.server.dummy_server import DummyServer
++from coding_interview.presentation.batch_asset_controller import (
++    GenerateStockHolderReportRequest,
++    StockHolderDto,
++)
++from coding_interview.presentation.order_controller import NewOrderRequest
++from coding_interview.presentation.portfolio_controller import PortfolioItemDto, UpdateOptimalPortfolioRequest
++
++
++def test_batch_asset_report_scenario() -> None:
++    """Batch Asset Report: 銘柄毎に保有している顧客・口座一覧を出力する"""
++    server = DummyServer.default()
++    user1 = "user-1"
++    user2 = "user-2"
++
++    # Given: 最適ポートフォリオを Toyopa 100% にする
++    server.portfolio_controller.update_optimal_portfolio(
++        UpdateOptimalPortfolioRequest(portfolios=(PortfolioItemDto("Toyopa", "1.0"),))
++    )
++
++    # And: user1 が新規拠出する
++    server.order_controller.new_order(NewOrderRequest(user1, "100000"))
++
++    # And: 最適ポートフォリオを Toyopa 40%・Somy 60% にする
++    server.portfolio_controller.update_optimal_portfolio(
++        UpdateOptimalPortfolioRequest(
++            portfolios=(PortfolioItemDto("Toyopa", "0.40"), PortfolioItemDto("Somy", "0.60"))
++        )
++    )
++
++    # And: user2 が新規拠出する
++    server.order_controller.new_order(NewOrderRequest(user2, "200000"))
++
++    # When: generateStockHolderReport を呼び出す
++    response = server.batch_asset_controller.generate_stock_holder_report(
++        GenerateStockHolderReportRequest(
++            symbolToUsers={"Toyopa": [user1, user2], "Somy": [user1, user2]}
++        )
++    )
++
++    # Then: 結果を Map でそのまま確認する
++    reports = {report.symbol: report.holders for report in response.reports}
++    assert reports == {
++        "Toyopa": (StockHolderDto(user1, "95000"), StockHolderDto(user2, "76000")),
++        "Somy": (StockHolderDto(user2, "114000"),),
++    }
+diff --git a/tests/test_order_scenario.py b/tests/test_order_scenario.py
 new file mode 100644
 index 0000000..f2d41cd
 --- /dev/null
-+++ a/tests/test_order_scenario.py
++++ b/tests/test_order_scenario.py
 @@ -0,0 +1,98 @@
 +import uuid
 +from decimal import Decimal

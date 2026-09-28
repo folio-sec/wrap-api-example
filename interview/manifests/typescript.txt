@@ -1,6 +1,12 @@
 README.md
+src/application/repository/accountRepository.ts
+src/application/usecase/asset/generateStockHolderReportUsecase.ts
+src/application/usecase/asset/stockHolderJoiner.ts
 src/application/usecase/order/rebalanceOrderUsecase.ts
 src/domain/account.ts
+src/infrastructure/repository/accountRepositoryImpl.ts
 src/infrastructure/server/dummyServer.ts
+src/presentation/batchAssetController.ts
 src/presentation/orderController.ts
+tests/batchAssetScenario.test.ts
 tests/orderScenario.test.ts

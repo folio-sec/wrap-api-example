@@ -1,6 +1,12 @@
 README.md
+src/main/java/folio/codinginterview/application/repository/AccountRepository.java
+src/main/java/folio/codinginterview/application/usecase/asset/GenerateStockHolderReportUsecase.java
+src/main/java/folio/codinginterview/application/usecase/asset/StockHolderJoiner.java
 src/main/java/folio/codinginterview/application/usecase/order/RebalanceOrderUsecase.java
 src/main/java/folio/codinginterview/domain/Account.java
+src/main/java/folio/codinginterview/infrastructure/repository/AccountRepositoryImpl.java
 src/main/java/folio/codinginterview/infrastructure/server/DummyServer.java
+src/main/java/folio/codinginterview/presentation/BatchAssetController.java
 src/main/java/folio/codinginterview/presentation/OrderController.java
+src/test/java/folio/codinginterview/BatchAssetScenarioTest.java
 src/test/java/folio/codinginterview/OrderScenarioTest.java
