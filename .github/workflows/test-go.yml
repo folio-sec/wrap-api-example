@@ -9,20 +9,27 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: Build
+    name: Build (Go ${{ matrix.go-version }})
+    strategy:
+      matrix:
+        go-version: ['1.25', '1.26', '1.27']
     timeout-minutes: 5
     defaults:
       run:
         working-directory: golang
     permissions:
       contents: read
+    env:
+      # matrix で指定したバージョンのまま検証するため、toolchain の自動切り替えを止める
+      GOTOOLCHAIN: local
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: 'golang/go.mod'
+          go-version: ${{ matrix.go-version }}
+          cache-dependency-path: 'golang/go.sum'
           cache: true
       - run: go mod download
       - name: Verify interview template and patch
