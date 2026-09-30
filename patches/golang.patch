@@ -1,5 +1,5 @@
 diff --git a/README.md b/README.md
-index 231f490..a6aad80 100644
+index 231f490..cf5f273 100644
 --- a/README.md
 +++ b/README.md
 @@ -20,3 +20,67 @@ go test ./...
@@ -70,6 +70,128 @@ index 231f490..a6aad80 100644
 +    1. 全売却後の現金の取り扱いに関しての方針を決めてください
 +    1. ストレッチ: 売却後の現金は銀行APIへ連携
 +4. （部分売却APIを実装してください）
+diff --git a/internal/application/repository/account_repository.go b/internal/application/repository/account_repository.go
+index 1baabb6..6a31e80 100644
+--- a/internal/application/repository/account_repository.go
++++ b/internal/application/repository/account_repository.go
+@@ -2,9 +2,16 @@ package repository
+ 
+ import "folio/codinginterview/internal/domain"
+ 
++// AccountEntry は口座の所有者と口座内容のペアを表す。
++type AccountEntry struct {
++	UserId  domain.UserId
++	Account domain.Account
++}
++
+ // AccountRepository は口座管理のリポジトリインターフェースです。
+ type AccountRepository interface {
+ 	Find(userId domain.UserId) (*domain.Account, error)
++	FindAll() ([]AccountEntry, error)
+ 	Upsert(userId domain.UserId, account domain.Account) error
+ 	Exists(userId domain.UserId) (bool, error)
+ }
+diff --git a/internal/application/usecase/asset/generate_stock_holder_report_usecase.go b/internal/application/usecase/asset/generate_stock_holder_report_usecase.go
+new file mode 100644
+index 0000000..c109f4c
+--- /dev/null
++++ b/internal/application/usecase/asset/generate_stock_holder_report_usecase.go
+@@ -0,0 +1,28 @@
++package asset
++
++import (
++	"folio/codinginterview/internal/application/repository"
++	"folio/codinginterview/internal/domain"
++)
++
++type GenerateStockHolderReportUsecase struct {
++	accountRepo repository.AccountRepository
++}
++
++func NewGenerateStockHolderReportUsecase(accountRepo repository.AccountRepository) *GenerateStockHolderReportUsecase {
++	return &GenerateStockHolderReportUsecase{accountRepo: accountRepo}
++}
++
++func (u *GenerateStockHolderReportUsecase) Run(symbolToUsers map[domain.StockSymbol][]domain.UserId) ([]StockHolderReport, error) {
++	entries, err := u.accountRepo.FindAll()
++	if err != nil {
++		return nil, err
++	}
++
++	accounts := make([]UserAccount, 0, len(entries))
++	for _, e := range entries {
++		accounts = append(accounts, UserAccount{UserId: e.UserId, Account: e.Account})
++	}
++
++	return Join(accounts, symbolToUsers), nil
++}
+diff --git a/internal/application/usecase/asset/stock_holder_joiner.go b/internal/application/usecase/asset/stock_holder_joiner.go
+new file mode 100644
+index 0000000..632c225
+--- /dev/null
++++ b/internal/application/usecase/asset/stock_holder_joiner.go
+@@ -0,0 +1,61 @@
++package asset
++
++import (
++	"folio/codinginterview/internal/domain"
++
++	"github.com/shopspring/decimal"
++)
++
++type UserAccount struct {
++	UserId  domain.UserId
++	Account domain.Account
++}
++
++type StockHolder struct {
++	UserId    domain.UserId
++	AmountJpy decimal.Decimal
++}
++
++type StockHolderReport struct {
++	Symbol  domain.StockSymbol
++	Holders []StockHolder
++}
++
++// 全口座情報と、銘柄を保有する顧客マッピング情報をもとに、銘柄を保持する顧客・口座一覧情報を返却する
++// @param accounts 全口座一覧
++// @param symbolToUsers 銘柄を保有する顧客マッピング情報
++// @return 銘柄を保持する顧客・口座一覧情報
++func Join(accounts []UserAccount, symbolToUsers map[domain.StockSymbol][]domain.UserId) []StockHolderReport {
++	results := make([]StockHolderReport, 0)
++	for symbol, userIds := range symbolToUsers {
++		holders := make([]StockHolder, 0)
++		for _, userId := range userIds {
++			var maybeAccount *UserAccount
++			for i := range accounts {
++				if accounts[i].UserId == userId {
++					maybeAccount = &accounts[i]
++					break
++				}
++			}
++			if maybeAccount != nil {
++				userAccount := *maybeAccount
++				var stock *domain.Stock
++				for i := range userAccount.Account.Stocks {
++					if userAccount.Account.Stocks[i].Symbol == symbol {
++						stock = &userAccount.Account.Stocks[i]
++						break
++					}
++				}
++				if stock != nil {
++					holders = append(holders, StockHolder{UserId: userId, AmountJpy: stock.AmountJpy})
++				} else {
++					// 何もしない
++				}
++			} else {
++				// 何もしない
++			}
++		}
++		results = append(results, StockHolderReport{Symbol: symbol, Holders: holders})
++	}
++	return results
++}
 diff --git a/internal/application/usecase/order/rebalance_order_usecase.go b/internal/application/usecase/order/rebalance_order_usecase.go
 new file mode 100644
 index 0000000..aaeaf87
@@ -150,25 +272,161 @@ index 4f50ea8..04d4160 100644
 +
 +	return Account{Cash: finalCash, Stocks: newStocks}
 +}
+diff --git a/internal/infrastructure/repository/account_repository_impl.go b/internal/infrastructure/repository/account_repository_impl.go
+index e8420fb..9412789 100644
+--- a/internal/infrastructure/repository/account_repository_impl.go
++++ b/internal/infrastructure/repository/account_repository_impl.go
+@@ -28,6 +28,16 @@ func (r *AccountRepositoryImpl) Find(userId domain.UserId) (*domain.Account, err
+ 	return &account, nil
+ }
+ 
++func (r *AccountRepositoryImpl) FindAll() ([]apprepository.AccountEntry, error) {
++	r.mu.RLock()
++	defer r.mu.RUnlock()
++	entries := make([]apprepository.AccountEntry, 0, len(r.store))
++	for userId, account := range r.store {
++		entries = append(entries, apprepository.AccountEntry{UserId: domain.UserId{Value: userId}, Account: account})
++	}
++	return entries, nil
++}
++
+ func (r *AccountRepositoryImpl) Upsert(userId domain.UserId, account domain.Account) error {
+ 	r.mu.Lock()
+ 	defer r.mu.Unlock()
 diff --git a/internal/infrastructure/server/dummy_server.go b/internal/infrastructure/server/dummy_server.go
-index fb0eea3..c62c3b0 100644
+index fb0eea3..28cca7c 100644
 --- a/internal/infrastructure/server/dummy_server.go
 +++ b/internal/infrastructure/server/dummy_server.go
-@@ -23,10 +23,11 @@ func NewDefaultDummyServer() *DummyServer {
+@@ -9,9 +9,10 @@ import (
+ )
+ 
+ type DummyServer struct {
+-	AssetController     *presentation.AssetController
+-	PortfolioController *presentation.PortfolioController
+-	OrderController     *presentation.OrderController
++	AssetController      *presentation.AssetController
++	BatchAssetController *presentation.BatchAssetController
++	PortfolioController  *presentation.PortfolioController
++	OrderController      *presentation.OrderController
+ }
+ 
+ func NewDefaultDummyServer() *DummyServer {
+@@ -19,18 +20,22 @@ func NewDefaultDummyServer() *DummyServer {
+ 	accountRepo := infrarepo.NewAccountRepositoryImpl()
+ 
+ 	getAssetUsecase := assetusecase.NewGetAssetUsecase(accountRepo)
++	generateStockHolderReportUsecase := assetusecase.NewGenerateStockHolderReportUsecase(accountRepo)
+ 	getLatestPortfolioUsecase := portfoliousecase.NewGetLatestPortfolioUsecase(portfolioRepo)
  	updatePortfolioUsecase := portfoliousecase.NewUpdatePortfolioUsecase(portfolioRepo)
  	newOrderUsecase := order.NewNewOrderUsecase(accountRepo, portfolioRepo)
  	additionalBuyOrderUsecase := order.NewAdditionalBuyOrderUsecase(accountRepo, portfolioRepo)
 +	rebalanceOrderUsecase := order.NewRebalanceOrderUsecase(accountRepo, portfolioRepo)
  
  	assetController := presentation.NewAssetController(getAssetUsecase)
++	batchAssetController := presentation.NewBatchAssetController(generateStockHolderReportUsecase)
  	portfolioController := presentation.NewPortfolioController(getLatestPortfolioUsecase, updatePortfolioUsecase)
 -	orderController := presentation.NewOrderController(newOrderUsecase, additionalBuyOrderUsecase)
 +	orderController := presentation.NewOrderController(newOrderUsecase, additionalBuyOrderUsecase, rebalanceOrderUsecase)
  
  	return &DummyServer{
- 		AssetController:     assetController,
+-		AssetController:     assetController,
+-		PortfolioController: portfolioController,
+-		OrderController:     orderController,
++		AssetController:      assetController,
++		BatchAssetController: batchAssetController,
++		PortfolioController:  portfolioController,
++		OrderController:      orderController,
+ 	}
+ }
+diff --git a/internal/presentation/batch_asset_controller.go b/internal/presentation/batch_asset_controller.go
+new file mode 100644
+index 0000000..87498be
+--- /dev/null
++++ b/internal/presentation/batch_asset_controller.go
+@@ -0,0 +1,81 @@
++package presentation
++
++import (
++	"fmt"
++
++	assetusecase "folio/codinginterview/internal/application/usecase/asset"
++	"folio/codinginterview/internal/domain"
++)
++
++type StockHolderDto struct {
++	UserId    string
++	AmountJpy string
++}
++
++type StockHolderReportDto struct {
++	Symbol  string
++	Holders []StockHolderDto
++}
++
++type GenerateStockHolderReportRequest struct {
++	SymbolToUsers map[string][]string
++}
++
++type GenerateStockHolderReportResponse struct {
++	Reports []StockHolderReportDto
++}
++
++type BatchAssetController struct {
++	generateStockHolderReportUsecase *assetusecase.GenerateStockHolderReportUsecase
++}
++
++func NewBatchAssetController(
++	generateStockHolderReportUsecase *assetusecase.GenerateStockHolderReportUsecase,
++) *BatchAssetController {
++	return &BatchAssetController{generateStockHolderReportUsecase: generateStockHolderReportUsecase}
++}
++
++// バッチ処理用に、銘柄を保有している顧客・口座一覧を出力する
++func (c *BatchAssetController) GenerateStockHolderReport(
++	req GenerateStockHolderReportRequest,
++) (GenerateStockHolderReportResponse, error) {
++	symbolToUsers := make(map[domain.StockSymbol][]domain.UserId)
++	for rawSymbol, rawUserIds := range req.SymbolToUsers {
++		symbol, err := domain.StockSymbolFromString(rawSymbol)
++		if err != nil {
++			return GenerateStockHolderReportResponse{}, newBadRequest(fmt.Sprintf("unknown symbol: %s", rawSymbol))
++		}
++
++		userIds := make([]domain.UserId, 0, len(rawUserIds))
++		for _, rawUserId := range rawUserIds {
++			userId, err := parseUserId(rawUserId)
++			if err != nil {
++				return GenerateStockHolderReportResponse{}, err
++			}
++			userIds = append(userIds, userId)
++		}
++		symbolToUsers[symbol] = userIds
++	}
++
++	reports, err := c.generateStockHolderReportUsecase.Run(symbolToUsers)
++	if err != nil {
++		return GenerateStockHolderReportResponse{}, err
++	}
++
++	reportDtos := make([]StockHolderReportDto, 0, len(reports))
++	for _, report := range reports {
++		holders := make([]StockHolderDto, 0, len(report.Holders))
++		for _, h := range report.Holders {
++			holders = append(holders, StockHolderDto{
++				UserId:    h.UserId.Value,
++				AmountJpy: h.AmountJpy.String(),
++			})
++		}
++		reportDtos = append(reportDtos, StockHolderReportDto{
++			Symbol:  string(report.Symbol),
++			Holders: holders,
++		})
++	}
++
++	return GenerateStockHolderReportResponse{Reports: reportDtos}, nil
++}
 diff --git a/internal/presentation/order_controller.go b/internal/presentation/order_controller.go
-index 583d888..9d332e9 100644
+index 583d888..f0f0456 100644
 --- a/internal/presentation/order_controller.go
 +++ b/internal/presentation/order_controller.go
 @@ -16,18 +16,25 @@ type AdditionalOrderRequest struct {
@@ -180,9 +438,11 @@ index 583d888..9d332e9 100644
 +}
 +
  type OrderController struct {
- 	newOrderUsecase *order.NewOrderUsecase
- 	additionalBuyOrderUsecase   *order.AdditionalBuyOrderUsecase
-+	rebalanceOrderUsecase       *order.RebalanceOrderUsecase
+-	newOrderUsecase *order.NewOrderUsecase
+-	additionalBuyOrderUsecase   *order.AdditionalBuyOrderUsecase
++	newOrderUsecase           *order.NewOrderUsecase
++	additionalBuyOrderUsecase *order.AdditionalBuyOrderUsecase
++	rebalanceOrderUsecase     *order.RebalanceOrderUsecase
  }
  
  func NewOrderController(
@@ -191,9 +451,11 @@ index 583d888..9d332e9 100644
 +	rebalanceOrderUsecase *order.RebalanceOrderUsecase,
  ) *OrderController {
  	return &OrderController{
- 		newOrderUsecase: newOrderUsecase,
- 		additionalBuyOrderUsecase:   additionalBuyOrderUsecase,
-+		rebalanceOrderUsecase:       rebalanceOrderUsecase,
+-		newOrderUsecase: newOrderUsecase,
+-		additionalBuyOrderUsecase:   additionalBuyOrderUsecase,
++		newOrderUsecase:           newOrderUsecase,
++		additionalBuyOrderUsecase: additionalBuyOrderUsecase,
++		rebalanceOrderUsecase:     rebalanceOrderUsecase,
  	}
  }
  
@@ -216,6 +478,89 @@ index 583d888..9d332e9 100644
 +		return err
 +	}
 +	return nil
++}
+diff --git a/test/batch_asset_scenario_test.go b/test/batch_asset_scenario_test.go
+new file mode 100644
+index 0000000..2b861ff
+--- /dev/null
++++ b/test/batch_asset_scenario_test.go
+@@ -0,0 +1,77 @@
++package test
++
++import (
++	"reflect"
++	"testing"
++
++	"folio/codinginterview/internal/infrastructure/server"
++	"folio/codinginterview/internal/presentation"
++)
++
++func TestBatchAssetScenario(t *testing.T) {
++	server := server.NewDefaultDummyServer()
++	user1 := "user-1"
++	user2 := "user-2"
++
++	t.Log("Given: 最適ポートフォリオを Toyopa 100% にする")
++	err := server.PortfolioController.UpdateOptimalPortfolio(presentation.UpdateOptimalPortfolioRequest{
++		Portfolios: []presentation.PortfolioItemDto{
++			{Symbol: "Toyopa", Rate: "1.0"},
++		},
++	})
++	if err != nil {
++		t.Fatalf("UpdateOptimalPortfolio failed: %v", err)
++	}
++
++	t.Log("And: user1 が新規拠出する")
++	err = server.OrderController.NewOrder(presentation.NewOrderRequest{UserId: user1, Amount: "100000"})
++	if err != nil {
++		t.Fatalf("NewOrder failed: %v", err)
++	}
++
++	t.Log("And: 最適ポートフォリオを Toyopa 40%・Somy 60% にする")
++	err = server.PortfolioController.UpdateOptimalPortfolio(presentation.UpdateOptimalPortfolioRequest{
++		Portfolios: []presentation.PortfolioItemDto{
++			{Symbol: "Toyopa", Rate: "0.40"},
++			{Symbol: "Somy", Rate: "0.60"},
++		},
++	})
++	if err != nil {
++		t.Fatalf("UpdateOptimalPortfolio failed: %v", err)
++	}
++
++	t.Log("And: user2 が新規拠出する")
++	err = server.OrderController.NewOrder(presentation.NewOrderRequest{UserId: user2, Amount: "200000"})
++	if err != nil {
++		t.Fatalf("NewOrder failed: %v", err)
++	}
++
++	t.Log("When: generateStockHolderReport を呼び出す")
++	response, err := server.BatchAssetController.GenerateStockHolderReport(presentation.GenerateStockHolderReportRequest{
++		SymbolToUsers: map[string][]string{
++			"Toyopa": {user1, user2},
++			"Somy":   {user1, user2},
++		},
++	})
++	if err != nil {
++		t.Fatalf("GenerateStockHolderReport failed: %v", err)
++	}
++
++	t.Log("Then: Toyopaはuser1とuser2が、Somyはuser2のみが保有するレポートが出力される")
++	reports := make(map[string][]presentation.StockHolderDto)
++	for _, report := range response.Reports {
++		reports[report.Symbol] = report.Holders
++	}
++	want := map[string][]presentation.StockHolderDto{
++		"Toyopa": {
++			{UserId: user1, AmountJpy: "95000"},
++			{UserId: user2, AmountJpy: "76000"},
++		},
++		"Somy": {
++			{UserId: user2, AmountJpy: "114000"},
++		},
++	}
++	if !reflect.DeepEqual(reports, want) {
++		t.Fatalf("reports mismatch:\ngot:  %#v\nwant: %#v", reports, want)
++	}
 +}
 diff --git a/test/order_scenario_test.go b/test/order_scenario_test.go
 new file mode 100644

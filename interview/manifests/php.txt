@@ -1,6 +1,12 @@
 README.md
+src/CodingInterview/Application/Repository/AccountRepository.php
+src/CodingInterview/Application/Usecase/Asset/GenerateStockHolderReportUsecase.php
+src/CodingInterview/Application/Usecase/Asset/StockHolderJoiner.php
 src/CodingInterview/Application/Usecase/Order/RebalanceOrderUsecase.php
 src/CodingInterview/Domain/Account.php
+src/CodingInterview/Infrastructure/Repository/AccountRepositoryImpl.php
 src/CodingInterview/Infrastructure/Server/DummyServer.php
+src/CodingInterview/Presentation/BatchAssetController.php
 src/CodingInterview/Presentation/OrderController.php
+tests/BatchAssetScenarioTest.php
 tests/OrderScenarioTest.php

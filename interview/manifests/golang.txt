@@ -1,6 +1,12 @@
 README.md
+internal/application/repository/account_repository.go
+internal/application/usecase/asset/generate_stock_holder_report_usecase.go
+internal/application/usecase/asset/stock_holder_joiner.go
 internal/application/usecase/order/rebalance_order_usecase.go
 internal/domain/account.go
+internal/infrastructure/repository/account_repository_impl.go
 internal/infrastructure/server/dummy_server.go
+internal/presentation/batch_asset_controller.go
 internal/presentation/order_controller.go
+test/batch_asset_scenario_test.go
 test/order_scenario_test.go

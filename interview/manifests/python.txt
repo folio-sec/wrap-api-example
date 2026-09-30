@@ -1,6 +1,12 @@
 README.md
+src/coding_interview/application/repository/account_repository.py
+src/coding_interview/application/usecase/asset/generate_stock_holder_report_usecase.py
+src/coding_interview/application/usecase/asset/stock_holder_joiner.py
 src/coding_interview/application/usecase/order/rebalance_order_usecase.py
 src/coding_interview/domain/account.py
+src/coding_interview/infrastructure/repository/account_repository_impl.py
 src/coding_interview/infrastructure/server/dummy_server.py
+src/coding_interview/presentation/batch_asset_controller.py
 src/coding_interview/presentation/order_controller.py
+tests/test_batch_asset_scenario.py
 tests/test_order_scenario.py

@@ -1,6 +1,12 @@
 README.md
+lib/coding_interview/application/repository/account_repository.rb
+lib/coding_interview/application/usecase/asset/generate_stock_holder_report_usecase.rb
+lib/coding_interview/application/usecase/asset/stock_holder_joiner.rb
 lib/coding_interview/application/usecase/order/rebalance_order_usecase.rb
 lib/coding_interview/domain/account.rb
+lib/coding_interview/infrastructure/repository/account_repository_impl.rb
 lib/coding_interview/infrastructure/server/dummy_server.rb
+lib/coding_interview/presentation/batch_asset_controller.rb
 lib/coding_interview/presentation/order_controller.rb
+spec/batch_asset_scenario_spec.rb
 spec/order_scenario_spec.rb

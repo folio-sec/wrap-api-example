@@ -1,8 +1,8 @@
 diff --git a/README.md b/README.md
-index 815ecc2..d38e732 100644
+index 72f27b6..3f01222 100644
 --- a/README.md
 +++ b/README.md
-@@ -40,3 +40,67 @@ Get-Command git -ErrorAction Stop
+@@ -40,3 +40,67 @@ vendor\bin\phpunit
  Get-Command curl.exe -ErrorAction Stop
  Get-Command git -ErrorAction Stop
  ```
@@ -70,6 +70,142 @@ index 815ecc2..d38e732 100644
 +    1. 全売却後の現金の取り扱いに関しての方針を決めてください
 +    1. ストレッチ: 売却後の現金は銀行APIへ連携
 +4. （部分売却APIを実装してください）
+diff --git a/src/CodingInterview/Application/Repository/AccountRepository.php b/src/CodingInterview/Application/Repository/AccountRepository.php
+index 1627cf5..aa8d960 100644
+--- a/src/CodingInterview/Application/Repository/AccountRepository.php
++++ b/src/CodingInterview/Application/Repository/AccountRepository.php
+@@ -14,6 +14,9 @@ interface AccountRepository
+ {
+     public function find(UserId $userId): ?Account;
+ 
++    /** @return array<array{0: UserId, 1: Account}> */
++    public function findAll(): array;
++
+     public function upsert(UserId $userId, Account $account): void;
+ 
+     public function exists(UserId $userId): bool;
+diff --git a/src/CodingInterview/Application/Usecase/Asset/GenerateStockHolderReportUsecase.php b/src/CodingInterview/Application/Usecase/Asset/GenerateStockHolderReportUsecase.php
+new file mode 100644
+index 0000000..4a52008
+--- /dev/null
++++ b/src/CodingInterview/Application/Usecase/Asset/GenerateStockHolderReportUsecase.php
+@@ -0,0 +1,29 @@
++<?php
++
++declare(strict_types=1);
++
++namespace Folio\CodingInterview\Application\Usecase\Asset;
++
++use Folio\CodingInterview\Application\Repository\AccountRepository;
++
++final class GenerateStockHolderReportUsecase
++{
++    public function __construct(
++        private readonly AccountRepository $accountRepository,
++    ) {}
++
++    /**
++     * @param array<string, \Folio\CodingInterview\Domain\UserId[]> $symbolToUsers
++     * @return StockHolderReport[]
++     */
++    public function run(array $symbolToUsers): array
++    {
++        return StockHolderJoiner::join(
++            array_map(
++                fn(array $pair): UserAccount => new UserAccount($pair[0], $pair[1]),
++                $this->accountRepository->findAll(),
++            ),
++            $symbolToUsers,
++        );
++    }
++}
+diff --git a/src/CodingInterview/Application/Usecase/Asset/StockHolderJoiner.php b/src/CodingInterview/Application/Usecase/Asset/StockHolderJoiner.php
+new file mode 100644
+index 0000000..331d3b2
+--- /dev/null
++++ b/src/CodingInterview/Application/Usecase/Asset/StockHolderJoiner.php
+@@ -0,0 +1,81 @@
++<?php
++
++declare(strict_types=1);
++
++namespace Folio\CodingInterview\Application\Usecase\Asset;
++
++use Folio\CodingInterview\Domain\Account;
++use Folio\CodingInterview\Domain\BigDecimal;
++use Folio\CodingInterview\Domain\StockSymbol;
++use Folio\CodingInterview\Domain\UserId;
++
++final class UserAccount
++{
++    public function __construct(
++        public readonly UserId $userId,
++        public readonly Account $account,
++    ) {}
++}
++
++final class StockHolder
++{
++    public function __construct(
++        public readonly UserId $userId,
++        public readonly BigDecimal $amountJpy,
++    ) {}
++}
++
++final class StockHolderReport
++{
++    /** @param StockHolder[] $holders */
++    public function __construct(
++        public readonly StockSymbol $symbol,
++        public readonly array $holders,
++    ) {}
++}
++
++final class StockHolderJoiner
++{
++    /**
++     * 全口座情報と、銘柄を保有する顧客マッピング情報をもとに、銘柄を保持する顧客・口座一覧情報を返却する
++     * @param UserAccount[] $accounts 全口座一覧
++     * @param array<string, UserId[]> $symbolToUsers 銘柄を保有する顧客マッピング情報
++     * @return StockHolderReport[] 銘柄を保持する顧客・口座一覧情報
++     */
++    public static function join(array $accounts, array $symbolToUsers): array
++    {
++        $results = [];
++        foreach ($symbolToUsers as $symbol => $userIds) {
++            $symbol = StockSymbol::from($symbol);
++            $holders = [];
++            foreach ($userIds as $userId) {
++                $maybeAccount = null;
++                foreach ($accounts as $a) {
++                    if ($a->userId->value === $userId->value) {
++                        $maybeAccount = $a;
++                        break;
++                    }
++                }
++                if ($maybeAccount !== null) {
++                    $userAccount = $maybeAccount;
++                    $stock = null;
++                    foreach ($userAccount->account->stocks as $s) {
++                        if ($s->symbol === $symbol) {
++                            $stock = $s;
++                            break;
++                        }
++                    }
++                    if ($stock !== null) {
++                        $holders[] = new StockHolder($userId, $stock->amountJpy);
++                    } else {
++                        // 何もしない
++                    }
++                } else {
++                    // 何もしない
++                }
++            }
++            $results[] = new StockHolderReport($symbol, $holders);
++        }
++        return $results;
++    }
++}
 diff --git a/src/CodingInterview/Application/Usecase/Order/RebalanceOrderUsecase.php b/src/CodingInterview/Application/Usecase/Order/RebalanceOrderUsecase.php
 new file mode 100644
 index 0000000..1699bc5
@@ -138,11 +274,36 @@ index a80c184..23ff9f5 100644
 +        return new self($finalCash, $stocks);
 +    }
  }
+diff --git a/src/CodingInterview/Infrastructure/Repository/AccountRepositoryImpl.php b/src/CodingInterview/Infrastructure/Repository/AccountRepositoryImpl.php
+index ea09a6f..2296aaf 100644
+--- a/src/CodingInterview/Infrastructure/Repository/AccountRepositoryImpl.php
++++ b/src/CodingInterview/Infrastructure/Repository/AccountRepositoryImpl.php
+@@ -18,6 +18,16 @@ final class AccountRepositoryImpl implements AccountRepository
+         return $this->store[$userId->value] ?? null;
+     }
+ 
++    public function findAll(): array
++    {
++        $result = [];
++        foreach ($this->store as $id => $account) {
++            // PHP casts numeric-looking string array keys to int, so cast back to string here.
++            $result[] = [new UserId((string) $id), $account];
++        }
++        return $result;
++    }
++
+     public function upsert(UserId $userId, Account $account): void
+     {
+         $this->store[$userId->value] = $account;
 diff --git a/src/CodingInterview/Infrastructure/Server/DummyServer.php b/src/CodingInterview/Infrastructure/Server/DummyServer.php
-index e79a93a..38700cc 100644
+index e79a93a..16d668a 100644
 --- a/src/CodingInterview/Infrastructure/Server/DummyServer.php
 +++ b/src/CodingInterview/Infrastructure/Server/DummyServer.php
-@@ -7,6 +7,7 @@ namespace Folio\CodingInterview\Infrastructure\Server;
+@@ -4,14 +4,17 @@ declare(strict_types=1);
+ 
+ namespace Folio\CodingInterview\Infrastructure\Server;
+ 
++use Folio\CodingInterview\Application\Usecase\Asset\GenerateStockHolderReportUsecase;
  use Folio\CodingInterview\Application\Usecase\Asset\GetAssetUsecase;
  use Folio\CodingInterview\Application\Usecase\Order\AdditionalBuyOrderUsecase;
  use Folio\CodingInterview\Application\Usecase\Order\NewOrderUsecase;
@@ -150,7 +311,26 @@ index e79a93a..38700cc 100644
  use Folio\CodingInterview\Application\Usecase\Portfolio\GetLatestPortfolioUsecase;
  use Folio\CodingInterview\Application\Usecase\Portfolio\UpdatePortfolioUsecase;
  use Folio\CodingInterview\Infrastructure\Repository\AccountRepositoryImpl;
-@@ -33,11 +34,12 @@ final class DummyServer
+ use Folio\CodingInterview\Infrastructure\Repository\PortfolioRepositoryImpl;
+ use Folio\CodingInterview\Presentation\AssetController;
++use Folio\CodingInterview\Presentation\BatchAssetController;
+ use Folio\CodingInterview\Presentation\OrderController;
+ use Folio\CodingInterview\Presentation\PortfolioController;
+ 
+@@ -19,6 +22,7 @@ final class DummyServer
+ {
+     public function __construct(
+         public readonly AssetController $assetController,
++        public readonly BatchAssetController $batchAssetController,
+         public readonly PortfolioController $portfolioController,
+         public readonly OrderController $orderController,
+     ) {}
+@@ -29,15 +33,18 @@ final class DummyServer
+         $accountRepository = new AccountRepositoryImpl();
+ 
+         $getAssetUsecase = new GetAssetUsecase($accountRepository);
++        $generateStockHolderReportUsecase = new GenerateStockHolderReportUsecase($accountRepository);
+         $getLatestPortfolioUsecase = new GetLatestPortfolioUsecase($portfolioRepository);
          $updatePortfolioUsecase = new UpdatePortfolioUsecase($portfolioRepository);
          $newOrderUsecase = new NewOrderUsecase($accountRepository, $portfolioRepository);
          $additionalBuyOrderUsecase = new AdditionalBuyOrderUsecase($accountRepository, $portfolioRepository);
@@ -158,12 +338,94 @@ index e79a93a..38700cc 100644
  
          return new DummyServer(
              new AssetController($getAssetUsecase),
++            new BatchAssetController($generateStockHolderReportUsecase),
              new PortfolioController($getLatestPortfolioUsecase, $updatePortfolioUsecase),
 -            new OrderController($newOrderUsecase, $additionalBuyOrderUsecase),
 +            new OrderController($newOrderUsecase, $additionalBuyOrderUsecase, $rebalanceOrderUsecase),
          );
      }
  }
+diff --git a/src/CodingInterview/Presentation/BatchAssetController.php b/src/CodingInterview/Presentation/BatchAssetController.php
+new file mode 100644
+index 0000000..ef2190c
+--- /dev/null
++++ b/src/CodingInterview/Presentation/BatchAssetController.php
+@@ -0,0 +1,75 @@
++<?php
++
++declare(strict_types=1);
++
++namespace Folio\CodingInterview\Presentation;
++
++use Folio\CodingInterview\Application\Usecase\Asset\GenerateStockHolderReportUsecase;
++use Folio\CodingInterview\Domain\StockSymbol;
++
++final class GenerateStockHolderReportRequest
++{
++    /** @param array<string, string[]> $symbolToUsers */
++    public function __construct(public readonly array $symbolToUsers) {}
++}
++
++final class StockHolderDto
++{
++    public function __construct(
++        public readonly string $userId,
++        public readonly string $amountJpy,
++    ) {}
++}
++
++final class StockHolderReportDto
++{
++    /** @param StockHolderDto[] $holders */
++    public function __construct(
++        public readonly string $symbol,
++        public readonly array $holders,
++    ) {}
++}
++
++final class GenerateStockHolderReportResponse
++{
++    /** @param StockHolderReportDto[] $reports */
++    public function __construct(public readonly array $reports) {}
++}
++
++final class BatchAssetController
++{
++    use PresentationPreparation;
++
++    public function __construct(
++        private readonly GenerateStockHolderReportUsecase $generateStockHolderReportUsecase,
++    ) {}
++
++    /** バッチ処理用に、銘柄を保有している顧客・口座一覧を出力する */
++    public function generateStockHolderReport(GenerateStockHolderReportRequest $req): GenerateStockHolderReportResponse
++    {
++        $symbolToUsers = [];
++        foreach ($req->symbolToUsers as $rawSymbol => $rawUserIds) {
++            $symbol = StockSymbol::fromStringOrNull((string) $rawSymbol);
++            if ($symbol === null) {
++                throw new BadRequestException("unknown symbol: {$rawSymbol}");
++            }
++            $userIds = [];
++            foreach ($rawUserIds as $rawUserId) {
++                $userIds[] = $this->parseUserId($rawUserId);
++            }
++            $symbolToUsers[$symbol->value] = $userIds;
++        }
++
++        $reports = $this->generateStockHolderReportUsecase->run($symbolToUsers);
++
++        $reportDtos = [];
++        foreach ($reports as $report) {
++            $holders = [];
++            foreach ($report->holders as $h) {
++                $holders[] = new StockHolderDto($h->userId->value, $h->amountJpy->toString());
++            }
++            $reportDtos[] = new StockHolderReportDto($report->symbol->value, $holders);
++        }
++        return new GenerateStockHolderReportResponse($reportDtos);
++    }
++}
 diff --git a/src/CodingInterview/Presentation/OrderController.php b/src/CodingInterview/Presentation/OrderController.php
 index 6bbfc31..051050d 100644
 --- a/src/CodingInterview/Presentation/OrderController.php
@@ -212,6 +474,70 @@ index 6bbfc31..051050d 100644
 +        }
 +    }
  }
+diff --git a/tests/BatchAssetScenarioTest.php b/tests/BatchAssetScenarioTest.php
+new file mode 100644
+index 0000000..bc42c1c
+--- /dev/null
++++ b/tests/BatchAssetScenarioTest.php
+@@ -0,0 +1,58 @@
++<?php
++
++declare(strict_types=1);
++
++namespace Folio\CodingInterview\Tests;
++
++use Folio\CodingInterview\Infrastructure\Server\DummyServer;
++use Folio\CodingInterview\Presentation\GenerateStockHolderReportRequest;
++use Folio\CodingInterview\Presentation\NewOrderRequest;
++use Folio\CodingInterview\Presentation\PortfolioItemDto;
++use Folio\CodingInterview\Presentation\StockHolderDto;
++use Folio\CodingInterview\Presentation\UpdateOptimalPortfolioRequest;
++use PHPUnit\Framework\TestCase;
++
++final class BatchAssetScenarioTest extends TestCase
++{
++    public function test銘柄毎に保有している顧客・口座一覧を出力する(): void
++    {
++        $server = DummyServer::default();
++        $user1 = 'user-1';
++        $user2 = 'user-2';
++
++        // Given: 最適ポートフォリオを Toyopa 100% にする
++        $server->portfolioController->updateOptimalPortfolio(new UpdateOptimalPortfolioRequest([
++            new PortfolioItemDto('Toyopa', '1.0'),
++        ]));
++
++        // And: user1 が新規拠出する
++        $server->orderController->newOrder(new NewOrderRequest($user1, '100000'));
++
++        // And: 最適ポートフォリオを Toyopa 40%・Somy 60% にする
++        $server->portfolioController->updateOptimalPortfolio(new UpdateOptimalPortfolioRequest([
++            new PortfolioItemDto('Toyopa', '0.40'),
++            new PortfolioItemDto('Somy', '0.60'),
++        ]));
++
++        // And: user2 が新規拠出する
++        $server->orderController->newOrder(new NewOrderRequest($user2, '200000'));
++
++        // When: generateStockHolderReport を呼び出す
++        $response = $server->batchAssetController->generateStockHolderReport(
++            new GenerateStockHolderReportRequest([
++                'Toyopa' => [$user1, $user2],
++                'Somy' => [$user1, $user2],
++            ])
++        );
++
++        // Then: Toyopaはuser1とuser2が、Somyはuser2のみが保有するレポートが出力される
++        $reports = [];
++        foreach ($response->reports as $report) {
++            $reports[$report->symbol] = $report->holders;
++        }
++        $this->assertEquals([
++            'Toyopa' => [new StockHolderDto($user1, '95000'), new StockHolderDto($user2, '76000')],
++            'Somy' => [new StockHolderDto($user2, '114000')],
++        ], $reports);
++    }
++}
 diff --git a/tests/OrderScenarioTest.php b/tests/OrderScenarioTest.php
 new file mode 100644
 index 0000000..ce7f18b
