@@ -2,6 +2,8 @@ on:
   pull_request:
     paths:
       - .github/workflows/*.yml
+      - .github/dependabot.yml
+      - .github/jactionlint.yaml
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -11,24 +13,7 @@ permissions:
   contents: read
 
 jobs:
-  actionlint:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      checks: write
-      contents: read
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: true # allow for reviewdog
-      - uses: reviewdog/action-actionlint@48e36f54d8da326b83ab061aee2cc5e01b5ca46f # v1.80.6
-        with:
-          fail_level: warning
-          filter_mode: nofilter
-          level: error
-          reporter: github-pr-review
-  ghalint:
+  jactionlint:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -37,20 +22,4 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - run: |
-          gh release download "v${GHALINT_VERSION}" \
-            --repo suzuki-shunsuke/ghalint \
-            --pattern 'ghalint_*_linux_amd64.tar.gz' \
-            --output '/tmp/ghalint.tar.gz'
-        shell: bash
-        env:
-          GHALINT_VERSION: 1.5.6
-          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      - run: |
-          cd /tmp
-          mkdir dist
-          tar -xvf ghalint.tar.gz -C ./dist/
-          sudo mv ./dist/ghalint /usr/local/bin
-          rm -rf ./dist ghalint.tar.gz
-        shell: bash
-      - run: ghalint run
+      - uses: jdx/jactionlint@a65ab044e916760429068fe5794b8306abdfcbb9 # v2.3.0
