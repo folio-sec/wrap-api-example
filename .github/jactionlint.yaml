@@ -1,0 +1,3 @@
+rules:
+  dependabot-cooldown:
+    days: 3 # keep the existing dependabot cooldown (3 days)
